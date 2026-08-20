@@ -68,6 +68,9 @@ const SECTIONS = [
 function Index() {
   const { data } = useSuspenseQuery(homeQuery);
   const [query, setQuery] = useState("");
+  const [spinning, setSpinning] = useState(false);
+  const navigate = useNavigate({ from: "/" });
+  const getRandom = useServerFn(getRandomArticleSlug);
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return [];
@@ -75,7 +78,18 @@ function Index() {
       .filter((item) => item.title.toLowerCase().includes(q))
       .slice(0, 6);
   }, [query, data]);
-  const lucky = data.popular[0]?.slug ?? data.news[0]?.slug;
+
+  const handleLucky = async () => {
+    setSpinning(true);
+    try {
+      const slug = await getRandom();
+      if (slug) navigate({ to: "/article/$slug", params: { slug } });
+    } finally {
+      setSpinning(false);
+    }
+  };
+
+  const hasArticles = data.popular.length > 0 || data.news.length > 0;
   return (
     <div className="min-h-screen bg-background text-foreground">
       <PixelField />
