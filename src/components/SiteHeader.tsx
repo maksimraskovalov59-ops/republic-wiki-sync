@@ -1,7 +1,7 @@
 import { Link, useRouter } from "@tanstack/react-router";
 import { BookOpenText, Menu, Palette, ShieldCheck, X } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTheme } from "@/hooks/useTheme";
 import { ThemePicker } from "@/components/ThemePicker";
 
@@ -21,6 +21,23 @@ export function SiteHeader() {
   const { theme, setTheme } = useTheme(!!user);
   const router = useRouter();
   const pathname = router.state.location.pathname;
+  const themeRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!themeOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (!themeRef.current?.contains(e.target as Node)) setThemeOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setThemeOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [themeOpen]);
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-xl">
@@ -64,7 +81,7 @@ export function SiteHeader() {
               <ShieldCheck className="size-4 shrink-0" /> Админка
             </Link>
           ) : null}
-          <div className="relative">
+          <div className="relative" ref={themeRef}>
             <button
               type="button"
               onClick={() => setThemeOpen((v) => !v)}
@@ -79,16 +96,15 @@ export function SiteHeader() {
                 <p className="text-xs font-bold tracking-widest text-muted-foreground uppercase">
                   Тема оформления
                 </p>
-                <div className="[&>div]:grid-cols-1">
-                  <ThemePicker
-                    value={theme}
-                    onChange={(id) => {
-                      setTheme(id);
-                      setThemeOpen(false);
-                    }}
-                    canUsePremium={!!user}
-                  />
-                </div>
+                <ThemePicker
+                  value={theme}
+                  onChange={(id) => {
+                    setTheme(id);
+                    setThemeOpen(false);
+                  }}
+                  canUsePremium={!!user}
+                  columns={1}
+                />
               </div>
             ) : null}
           </div>
