@@ -30,7 +30,9 @@ export const getRandomArticleSlug = createServerFn({ method: "GET" }).handler(as
   const slugs = data ?? [];
   if (slugs.length === 0) return null;
   const idx = Math.floor(Math.random() * slugs.length);
-  return slugs[idx].slug;
+  const random = slugs[idx];
+  if (!random) return null;
+  return random.slug;
 });
 
 export const getArticles = createServerFn({ method: "GET" })
