@@ -1,10 +1,10 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useServerFn } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { Eye, Newspaper, Search, Sparkles, Star } from "lucide-react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { PixelField } from "@/components/PixelField";
-import { getHomeData } from "@/lib/wiki.functions";
+import { getHomeData, getRandomArticleSlug } from "@/lib/wiki.functions";
 
 const homeQuery = queryOptions({
   queryKey: ["home"],
