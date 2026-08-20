@@ -92,7 +92,7 @@ function Index() {
 
   const hasArticles = data.popular.length > 0 || data.news.length > 0;
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen text-foreground">
       <PixelField />
       <SiteHeader />
 

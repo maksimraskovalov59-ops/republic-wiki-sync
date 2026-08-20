@@ -152,7 +152,7 @@ function Editor() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen text-foreground">
       <PixelField />
       <SiteHeader />
       <main className="mx-auto max-w-5xl px-4 2xl:max-w-6xl py-8 sm:px-6">

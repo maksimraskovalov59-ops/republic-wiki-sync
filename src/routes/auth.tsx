@@ -99,7 +99,7 @@ function AuthPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen text-foreground">
       <PixelField />
       <SiteHeader />
       <main className="mx-auto flex max-w-md flex-col px-4 py-12 sm:px-6">
