@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Check, Newspaper, PencilLine, ShieldAlert, X, GitPullRequest } from "lucide-react";
+import { Check, Eye, GitPullRequest, Newspaper, PencilLine, ShieldAlert, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -12,6 +12,7 @@ import {
   listEditSuggestions,
   approveEditSuggestion,
   rejectEditSuggestion,
+  EditSuggestion,
 } from "@/lib/wiki.functions";
 
 export const Route = createFileRoute("/_authenticated/admin")({
@@ -69,7 +70,7 @@ function AdminPage() {
     },
   });
 
-  const suggestions = useQuery({
+  const suggestions = useQuery<EditSuggestion[]>({
     queryKey: ["edit-suggestions"],
     enabled: isAdmin,
     queryFn: () => listEditSuggestions(),
@@ -125,9 +126,7 @@ function AdminPage() {
     );
   }
 
-  const pendingSuggestions = (suggestions.data ?? []).filter(
-    (s) => (s as unknown as { status: string }).status === "pending",
-  );
+  const pendingSuggestions = (suggestions.data ?? []).filter((s) => s.status === "pending");
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -196,42 +195,39 @@ function AdminPage() {
             ) : (
               <ul className="mt-3 space-y-3">
                 {pendingSuggestions.map((s) => {
-                  const id = (s as unknown as { id: string }).id;
-                  const article = (s as unknown as { articles: { slug: string; title: string } | null }).articles;
+                  const article = s.articles;
                   return (
-                    <li key={id} className="rounded-lg border border-border bg-secondary/40 p-4">
+                    <li key={s.id} className="rounded-lg border border-border bg-secondary/40 p-4">
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <p className="text-sm font-semibold text-foreground">
                           Правка к «{article?.title ?? "—"}»
                         </p>
                         <span className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">
-                          {(s as unknown as { author_name: string }).author_name}
+                          {s.author_name}
                         </span>
                       </div>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {(s as unknown as { note: string }).note}
-                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">{s.note}</p>
                       <div className="mt-3 flex flex-wrap items-center gap-2">
                         <button
-                          onClick={() => setViewing(id)}
+                          onClick={() => setViewing(s.id)}
                           className="flex items-center gap-1.5 rounded-md border border-border bg-secondary px-3 py-1.5 text-xs"
                         >
-                          <Eye /> Просмотреть
+                          <Eye className="size-3.5" /> Просмотреть
                         </button>
                         <button
-                          onClick={() => void approveSuggestion(id)}
+                          onClick={() => void approveSuggestion(s.id)}
                           className="flex items-center gap-1.5 rounded-md border border-cyan/60 bg-secondary px-3 py-1.5 text-xs transition-shadow hover:glow-cyan"
                         >
                           <Check className="size-3.5 text-cyan" /> Принять
                         </button>
                         <input
-                          value={suggestionReason[id] ?? ""}
-                          onChange={(e) => setSuggestionReason((r) => ({ ...r, [id]: e.target.value }))}
+                          value={suggestionReason[s.id] ?? ""}
+                          onChange={(e) => setSuggestionReason((r) => ({ ...r, [s.id]: e.target.value }))}
                           placeholder="Причина отклонения"
                           className="min-w-0 flex-1 rounded-md border border-border bg-secondary px-3 py-1.5 text-xs outline-none focus:border-magenta"
                         />
                         <button
-                          onClick={() => void rejectSuggestion(id)}
+                          onClick={() => void rejectSuggestion(s.id)}
                           className="flex items-center gap-1.5 rounded-md border border-magenta/60 bg-secondary px-3 py-1.5 text-xs transition-shadow hover:glow-magenta"
                         >
                           <X className="size-3.5 text-magenta" /> Отклонить
@@ -253,7 +249,9 @@ function AdminPage() {
                 </button>
               </div>
               <div className="prose prose-sm mt-3 max-h-[400px] overflow-y-auto rounded-md border border-border bg-secondary/30 p-3">
-                <Markdown>{(suggestions.data ?? []).find((s) => (s as unknown as { id: string }).id === viewing)?.content ?? ""}</Markdown>
+                <Markdown>
+                  {(suggestions.data ?? []).find((s) => s.id === viewing)?.content ?? ""}
+                </Markdown>
               </div>
             </div>
           ) : null}
