@@ -1,7 +1,9 @@
 import { Link, useRouter } from "@tanstack/react-router";
-import { BookOpenText, Menu, ShieldCheck, X } from "lucide-react";
+import { BookOpenText, Menu, Palette, ShieldCheck, X } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useState } from "react";
+import { useTheme } from "@/hooks/useTheme";
+import { ThemePicker } from "@/components/ThemePicker";
 
 const NAV = [
   { label: "Все статьи", to: "/articles" },
@@ -15,6 +17,8 @@ const NAV = [
 export function SiteHeader() {
   const { user, username, isAdmin, loading } = useAuth();
   const [open, setOpen] = useState(false);
+  const [themeOpen, setThemeOpen] = useState(false);
+  const { theme, setTheme } = useTheme(!!user);
   const router = useRouter();
   const pathname = router.state.location.pathname;
 
@@ -60,6 +64,34 @@ export function SiteHeader() {
               <ShieldCheck className="size-4 shrink-0" /> Админка
             </Link>
           ) : null}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setThemeOpen((v) => !v)}
+              aria-label="Тема оформления"
+              aria-expanded={themeOpen}
+              className="flex shrink-0 items-center rounded-md border border-border bg-secondary p-2 text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <Palette className="size-5" />
+            </button>
+            {themeOpen ? (
+              <div className="absolute right-0 z-50 mt-2 w-[min(20rem,calc(100vw-2rem))] rounded-xl border border-border bg-popover p-3 shadow-xl">
+                <p className="text-xs font-bold tracking-widest text-muted-foreground uppercase">
+                  Тема оформления
+                </p>
+                <div className="[&>div]:grid-cols-1">
+                  <ThemePicker
+                    value={theme}
+                    onChange={(id) => {
+                      setTheme(id);
+                      setThemeOpen(false);
+                    }}
+                    canUsePremium={!!user}
+                  />
+                </div>
+              </div>
+            ) : null}
+          </div>
           <Link
             to={user ? "/cabinet" : "/auth"}
             className="shrink-0 rounded-md border border-border bg-secondary px-4 py-2 text-sm font-medium text-foreground transition-shadow hover:glow-cyan"

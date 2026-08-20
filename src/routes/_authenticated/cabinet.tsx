@@ -2,12 +2,14 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { LogOut, PencilLine, Plus, ShieldCheck, Sparkles } from "lucide-react";
+import { LogOut, Palette, PencilLine, Plus, ShieldCheck, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { claimAdmin } from "@/lib/wiki.functions";
 import { SiteHeader } from "@/components/SiteHeader";
 import { PixelField } from "@/components/PixelField";
+import { useTheme } from "@/hooks/useTheme";
+import { ThemePicker } from "@/components/ThemePicker";
 
 export const Route = createFileRoute("/_authenticated/cabinet")({
   head: () => {
@@ -42,6 +44,7 @@ function Cabinet() {
   const doClaim = useServerFn(claimAdmin);
   const [password, setPassword] = useState("");
   const [claimMsg, setClaimMsg] = useState<string | null>(null);
+  const { theme, setTheme } = useTheme(!!user);
 
   const mine = useQuery({
     queryKey: ["my-articles", user?.id],
@@ -154,6 +157,15 @@ function Cabinet() {
         </section>
 
         <aside className="space-y-4">
+          <section className="surface-card p-5">
+            <h2 className="flex items-center gap-2 text-sm font-bold tracking-wide text-cyan uppercase">
+              <Palette className="size-4" /> Тема оформления
+            </h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Светлая и тёмная доступны всем. Остальные палитры открыты для участников с аккаунтом.
+            </p>
+            <ThemePicker value={theme} onChange={setTheme} canUsePremium={!!user} />
+          </section>
           <section className="surface-card p-5">
             <h2 className="flex items-center gap-2 text-sm font-bold tracking-wide text-magenta uppercase">
               <ShieldCheck className="size-4" /> Права админа

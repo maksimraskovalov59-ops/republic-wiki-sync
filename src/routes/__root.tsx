@@ -113,6 +113,11 @@ function RootShell({ children }: { children: ReactNode }) {
       </head>
       <body>
         {children}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem("rmc-wiki-theme");var m={light:"theme-light",green:"theme-green",yellow:"theme-yellow",purple:"theme-purple",crimson:"theme-crimson",mint:"theme-mint"};if(t&&m[t])document.documentElement.classList.add(m[t]);}catch(e){}})();`,
+          }}
+        />
         <Scripts />
       </body>
     </html>
