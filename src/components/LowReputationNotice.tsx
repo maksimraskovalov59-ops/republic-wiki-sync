@@ -1,5 +1,5 @@
 import { AlertTriangle } from "lucide-react";
-import { LOW_REPUTATION_THRESHOLD } from "@/lib/wiki.functions";
+import { LOW_REPUTATION_THRESHOLD } from "@/lib/wiki-constants";
 
 export function LowReputationNotice({
   reputation,
