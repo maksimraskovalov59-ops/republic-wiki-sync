@@ -370,6 +370,10 @@ export type MemberRow = {
   created_at: string;
   isAdmin: boolean;
   isCreator: boolean;
+  mutedUntil: string | null;
+  bannedUntil: string | null;
+  blockReason: string | null;
+
 };
 
 export const listMembers = createServerFn({ method: "GET" })
