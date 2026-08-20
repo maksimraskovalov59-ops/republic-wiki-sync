@@ -326,7 +326,7 @@ export const rejectEditSuggestion = createServerFn({ method: "POST" })
 
 export type SuggestionArticle = {
   slug: string;
-  title: string;
+  title?: string | null;
   author_id: string | null;
 };
 
