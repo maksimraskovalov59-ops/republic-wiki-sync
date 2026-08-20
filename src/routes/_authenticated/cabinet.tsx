@@ -164,7 +164,7 @@ function Cabinet() {
             <p className="mt-2 text-sm text-muted-foreground">
               Светлая и тёмная доступны всем. Остальные палитры открыты для участников с аккаунтом.
             </p>
-            <ThemePicker value={theme} onChange={setTheme} canUsePremium={!!user} />
+            <ThemePicker value={theme} onChange={setTheme} canUsePremium={!!user} columns={1} />
           </section>
           <section className="surface-card p-5">
             <h2 className="flex items-center gap-2 text-sm font-bold tracking-wide text-magenta uppercase">
