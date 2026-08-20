@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import {
+  Ban,
   Check,
   Eye,
   GitPullRequest,
@@ -11,7 +12,12 @@ import {
   Search,
   ShieldAlert,
   ShieldCheck,
+  ScrollText,
+  RotateCcw,
+  Trash2,
+  Unlock,
   Users,
+  VolumeX,
   X,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -27,6 +33,11 @@ import {
   listMembers,
   setUserAdmin,
   MemberRow,
+  setUserBlock,
+  adminArticleAction,
+  resetAllViews,
+  listAuditLog,
+  AuditRow,
 } from "@/lib/wiki.functions";
 
 export const Route = createFileRoute("/_authenticated/admin")({
@@ -57,6 +68,11 @@ function AdminPage() {
   const doApprove = useServerFn(approveEditSuggestion);
   const doReject = useServerFn(rejectEditSuggestion);
   const doSetAdmin = useServerFn(setUserAdmin);
+  const doBlock = useServerFn(setUserBlock);
+  const doArticleAction = useServerFn(adminArticleAction);
+  const doResetAll = useServerFn(resetAllViews);
+  const [blockReason, setBlockReason] = useState<Record<string, string>>({});
+  const [blockHours, setBlockHours] = useState<Record<string, string>>({});
   const [memberQuery, setMemberQuery] = useState("");
   const [memberMsg, setMemberMsg] = useState<string | null>(null);
 
@@ -75,6 +91,53 @@ function AdminPage() {
     }
     setMemberMsg(makeAdmin ? "Права администратора выданы" : "Права администратора сняты");
     await queryClient.invalidateQueries({ queryKey: ["admin-members"] });
+  }
+
+  const audit = useQuery<AuditRow[]>({
+    queryKey: ["admin-audit"],
+    enabled: isAdmin,
+    queryFn: () => listAuditLog(),
+  });
+
+  async function block(userId: string, mode: "mute" | "ban" | "clear") {
+    setMemberMsg(null);
+    const raw = Number.parseInt(blockHours[userId] ?? "", 10);
+    const res = await doBlock({
+      data: {
+        userId,
+        mode,
+        hours: Number.isFinite(raw) && raw > 0 ? raw : null,
+        reason: blockReason[userId] ?? "",
+      },
+    });
+    if (!res.ok) {
+      setMemberMsg(res.error);
+      return;
+    }
+    setMemberMsg(
+      mode === "clear" ? "Ограничения сняты" : mode === "mute" ? "Участник в муте" : "Участник забанен",
+    );
+    await queryClient.invalidateQueries();
+  }
+
+  async function articleAction(articleId: string, action: "reset-views" | "unpublish" | "delete") {
+    if (action === "delete" && !confirm("Удалить материал безвозвратно?")) return;
+    const res = await doArticleAction({ data: { articleId, action } });
+    if (!res.ok) {
+      alert(res.error);
+      return;
+    }
+    await queryClient.invalidateQueries();
+  }
+
+  async function resetEverything() {
+    if (!confirm("Обнулить просмотры у всех материалов?")) return;
+    const res = await doResetAll();
+    if (!res.ok) {
+      alert(res.error);
+      return;
+    }
+    await queryClient.invalidateQueries();
   }
 
   const pending = useQuery({
