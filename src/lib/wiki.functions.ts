@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { createPublicClient } from "./supabase-public.server";
+import { CREATOR_USERNAME } from "./wiki-constants";
 
 export const getHomeData = createServerFn({ method: "GET" }).handler(async () => {
   const sb = createPublicClient();
@@ -349,9 +350,6 @@ export type SuggestionArticle = {
   title?: string | null;
   author_id: string | null;
 };
-
-export const CREATOR_USERNAME = "TheHapPpyONE";
-export const LOW_REPUTATION_THRESHOLD = -5;
 
 export type MemberRow = {
   id: string;
