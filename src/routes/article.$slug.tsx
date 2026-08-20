@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
@@ -28,6 +28,15 @@ type Article = {
 };
 
 export const Route = createFileRoute("/article/$slug")({
+  beforeLoad: ({ params }) => {
+    if (params.slug === "discord") {
+      throw redirect({
+        to: "/article/$slug",
+        params: { slug: "soobshchestvo" },
+        replace: true,
+      });
+    }
+  },
   head: ({ params }) => {
     const title = `${params.slug} — RepublicMC WIKI`;
     const description = `Статья вики RepublicMC: ${params.slug}.`;

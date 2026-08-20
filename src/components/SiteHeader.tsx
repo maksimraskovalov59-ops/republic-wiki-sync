@@ -11,7 +11,7 @@ const NAV = [
   { label: "Изменения", to: "/recent" },
   { label: "Правила", to: "/article/$slug", params: { slug: "pravila" } },
   { label: "Карта", to: "/article/$slug", params: { slug: "karta-servera" } },
-  { label: "Дискорд", to: "/article/$slug", params: { slug: "discord" } },
+  { label: "Сообщество", to: "/article/$slug", params: { slug: "soobshchestvo" } },
 ] as const;
 
 export function SiteHeader() {
