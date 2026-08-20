@@ -41,16 +41,16 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-xl">
-      <div className="mx-auto grid max-w-7xl grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-4 py-3 sm:flex sm:justify-between sm:px-6">
-        <Link to="/" className="flex min-w-0 items-center gap-2">
+      <div className="mx-auto grid max-w-7xl grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-3 py-3 sm:flex sm:justify-between sm:gap-4 sm:px-6">
+        <Link to="/" className="flex min-w-0 items-center gap-1.5 sm:gap-2">
           <BookOpenText className="size-5 shrink-0 text-cyan" />
-          <span className="truncate font-display text-lg font-extrabold tracking-tight">
+          <span className="truncate font-display text-sm font-extrabold tracking-tight sm:text-lg">
             <span className="text-brand-gradient">REPUBLICMC</span>{" "}
             <span className="text-foreground">WIKI</span>
           </span>
         </Link>
 
-        <nav className="flex items-center gap-1 justify-self-end sm:gap-2">
+        <nav className="flex shrink-0 items-center gap-1 justify-self-end sm:gap-2">
           <div className="hidden items-center gap-1 md:flex">
             {NAV.map((item) =>
               "params" in item ? (
@@ -110,7 +110,7 @@ export function SiteHeader() {
           </div>
           <Link
             to={user ? "/cabinet" : "/auth"}
-            className="shrink-0 rounded-md border border-border bg-secondary px-4 py-2 text-sm font-medium text-foreground transition-shadow hover:glow-cyan"
+            className="max-w-[7rem] shrink-0 truncate rounded-md border border-border bg-secondary px-3 py-2 text-sm font-medium text-foreground transition-shadow hover:glow-cyan sm:max-w-none sm:px-4"
           >
             {loading ? "…" : user ? (username ?? "Кабинет") : "Войти"}
           </Link>
