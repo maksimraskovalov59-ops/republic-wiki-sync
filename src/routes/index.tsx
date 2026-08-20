@@ -112,6 +112,10 @@ function Index() {
   };
 
   const hasArticles = data.popular.length > 0 || data.news.length > 0;
+  const totals = useMemo(() => {
+    const views = data.popular.reduce((sum, p) => sum + (p.views ?? 0), 0);
+    return { articles: recent.articles.length, views };
+  }, [data.popular, recent.articles]);
   return (
     <div className="min-h-screen text-foreground">
       <PixelField />
