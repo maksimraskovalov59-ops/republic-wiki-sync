@@ -280,7 +280,7 @@ function Index() {
           ) : null}
         </aside>
 
-        <section className="order-4 grid gap-6 lg:col-span-3 xl:grid-cols-[minmax(0,1fr)_360px] 2xl:grid-cols-[minmax(0,1fr)_420px]">
+        <section className="order-4 grid items-start gap-6 lg:col-span-3 xl:grid-cols-[minmax(0,1fr)_360px] 2xl:grid-cols-[minmax(0,1fr)_420px]">
           <div className="surface-card p-5 sm:p-6">
             <h2 className="text-lg font-bold text-cyan">Разделы вики</h2>
             <p className="mt-1 text-sm text-muted-foreground">
