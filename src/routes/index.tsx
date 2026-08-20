@@ -96,7 +96,7 @@ function Index() {
       <PixelField />
       <SiteHeader />
 
-      <main className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 sm:py-8 lg:grid-cols-[280px_minmax(0,1fr)_300px]">
+      <main className="mx-auto grid max-w-7xl 2xl:max-w-[1600px] min-[1900px]:max-w-[1800px] gap-6 px-4 py-6 sm:px-6 sm:py-8 lg:grid-cols-[280px_minmax(0,1fr)_300px] 2xl:grid-cols-[340px_minmax(0,1fr)_360px]">
         <aside className="order-3 space-y-3 lg:order-1">
           <h2 className="flex items-center gap-2 text-lg font-bold text-cyan">
             <Newspaper className="size-5 shrink-0" /> Новости

@@ -145,7 +145,7 @@ function Cabinet() {
     <div className="min-h-screen bg-background text-foreground">
       <PixelField />
       <SiteHeader />
-      <main className="mx-auto grid max-w-7xl gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <main className="mx-auto grid max-w-7xl 2xl:max-w-[1600px] min-[1900px]:max-w-[1800px] gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[minmax(0,1fr)_320px] 2xl:grid-cols-[minmax(0,1fr)_380px]">
         <section className="min-w-0 space-y-4">
           <div className="surface-card flex flex-wrap items-center justify-between gap-4 p-5">
             <div className="min-w-0">
