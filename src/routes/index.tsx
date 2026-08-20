@@ -43,6 +43,7 @@ function formatDate(iso: string) {
 }
 
 function Index() {
+  const SECTIONS_UNUSED = null;
   const { data } = useSuspenseQuery(homeQuery);
   const [query, setQuery] = useState("");
   const results = useMemo(() => {
