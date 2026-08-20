@@ -226,9 +226,89 @@ function Cabinet() {
               })}
             </ul>
           </div>
+
+          <form onSubmit={saveProfile} className="surface-card p-5">
+            <h2 className="flex items-center gap-2 text-sm font-bold tracking-wide text-cyan uppercase">
+              <UserCog className="size-4" /> Профиль
+            </h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Аватар, описание и ссылка видны всем на вашей публичной странице.
+            </p>
+            <div className="mt-4 flex flex-wrap items-center gap-4">
+              {form.avatar_url ? (
+                <img
+                  src={form.avatar_url}
+                  alt="Ваш аватар"
+                  className="size-16 rounded-xl border border-border object-cover"
+                  loading="lazy"
+                />
+              ) : (
+                <div className="grid size-16 place-items-center rounded-xl border border-border bg-secondary text-lg font-bold text-muted-foreground">
+                  {(username ?? "??").slice(0, 2).toUpperCase()}
+                </div>
+              )}
+              <input
+                value={form.avatar_url}
+                onChange={(e) => setProfileForm({ ...form, avatar_url: e.target.value })}
+                placeholder="Ссылка на аватар (URL картинки)"
+                className="min-w-0 flex-1 rounded-md border border-border bg-secondary px-3 py-2 text-sm outline-none focus:border-cyan"
+              />
+            </div>
+            <textarea
+              value={form.bio}
+              onChange={(e) => setProfileForm({ ...form, bio: e.target.value })}
+              maxLength={500}
+              placeholder="О себе: ник в игре, чем занимаетесь на сервере…"
+              className="mt-3 min-h-[100px] w-full rounded-md border border-border bg-secondary px-3 py-2 text-sm outline-none focus:border-cyan"
+            />
+            <input
+              value={form.link}
+              onChange={(e) => setProfileForm({ ...form, link: e.target.value })}
+              placeholder="Ссылка (Telegram, сайт и т.д.)"
+              className="mt-3 w-full rounded-md border border-border bg-secondary px-3 py-2 text-sm outline-none focus:border-cyan"
+            />
+            <div className="mt-3 flex items-center gap-3">
+              <button
+                type="submit"
+                disabled={saving}
+                className="flex items-center gap-2 rounded-md border border-cyan/60 bg-secondary px-4 py-2 text-sm transition-shadow hover:glow-cyan disabled:opacity-50"
+              >
+                <Save className="size-4 text-cyan" /> {saving ? "Сохраняем…" : "Сохранить профиль"}
+              </button>
+              {profileMsg && <span className="text-xs text-muted-foreground">{profileMsg}</span>}
+            </div>
+          </form>
         </section>
 
         <aside className="space-y-4">
+          <section className="surface-card p-5">
+            <h2 className="text-sm font-bold tracking-wide text-magenta uppercase">Моя статистика</h2>
+            <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
+              <li className="flex items-center justify-between gap-3">
+                <span>Статей опубликовано</span>
+                <span className="font-semibold text-foreground">{stats.data?.stats.published ?? 0}</span>
+              </li>
+              <li className="flex items-center justify-between gap-3">
+                <span>Просмотров</span>
+                <span className="font-semibold text-foreground">{stats.data?.stats.views ?? 0}</span>
+              </li>
+              <li className="flex items-center justify-between gap-3">
+                <span>Правок</span>
+                <span className="font-semibold text-foreground">{stats.data?.stats.revisions ?? 0}</span>
+              </li>
+              <li className="flex items-center justify-between gap-3">
+                <span>Комментариев</span>
+                <span className="font-semibold text-foreground">{stats.data?.stats.comments ?? 0}</span>
+              </li>
+              <li className="flex items-center justify-between gap-3">
+                <span>Репутация</span>
+                <span className="font-semibold text-foreground">{profile.data?.reputation ?? 0}</span>
+              </li>
+            </ul>
+            <div className="mt-3">
+              <LowReputationNotice reputation={profile.data?.reputation} variant="profile" />
+            </div>
+          </section>
           <section className="surface-card p-5">
             <h2 className="flex items-center gap-2 text-sm font-bold tracking-wide text-cyan uppercase">
               <Palette className="size-4" /> Тема оформления
