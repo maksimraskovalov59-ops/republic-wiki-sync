@@ -205,15 +205,16 @@ function Index() {
             </Link>
           ))}
 
-          {lucky ? (
-            <Link
-              to="/article/$slug"
-              params={{ slug: lucky }}
-              className="glow-magenta flex items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-semibold text-accent-foreground"
+          {hasArticles ? (
+            <button
+              type="button"
+              onClick={handleLucky}
+              disabled={spinning}
+              className="glow-magenta flex w-full items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-semibold text-accent-foreground disabled:opacity-70"
               style={{ backgroundImage: "var(--gradient-accent)" }}
             >
-              <Sparkles className="size-4 shrink-0" /> Мне повезёт!
-            </Link>
+              <Sparkles className={`size-4 shrink-0${spinning ? " animate-spin" : ""}`} /> Мне повезёт!
+            </button>
           ) : null}
         </aside>
 
