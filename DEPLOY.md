@@ -156,6 +156,7 @@ NITRO_PRESET=vercel npm run build
 | Симптом | Причина / решение |
 | --- | --- |
 | `Missing Supabase environment variable(s)` | не заданы серверные `SUPABASE_*` в Vercel |
+| `supabaseUrl is required.` / «This page didn't load» на прод-домене | нет серверных `SUPABASE_URL` и `SUPABASE_PUBLISHABLE_KEY` в Vercel (Production + Preview) → добавьте и сделайте **Redeploy** |
 | Пустые списки статей на прод-домене | не применены GRANT/RLS → выполните `supabase db push` заново |
 | `Unsupported provider` при входе через Google | провайдер не включён в Authentication → Providers |
 | Редирект после входа на `localhost` | не обновлён Site URL в Supabase |
