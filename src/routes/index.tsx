@@ -42,16 +42,6 @@ function formatDate(iso: string) {
   });
 }
 
-const TAGS = [
-  ["Узнай всё обо всём", false],
-  ["Быстро", true],
-  ["Качественно", false],
-  ["Создавай", false],
-  ["Бесплатно", false],
-  ["Удобно", true],
-  ["Делись опытом", false],
-] as const;
-
 function Index() {
   const { data } = useSuspenseQuery(homeQuery);
   const [query, setQuery] = useState("");
@@ -142,20 +132,12 @@ function Index() {
             </div>
           ) : null}
 
-          <div className="mt-6 flex flex-wrap justify-center gap-2">
-            {TAGS.map(([label, accent]) => (
-              <span
-                key={label}
-                className={`rounded-md border px-3 py-1.5 text-xs ${
-                  accent
-                    ? "border-magenta text-magenta"
-                    : "border-border text-muted-foreground hover:border-cyan hover:text-foreground"
-                }`}
-              >
-                {label}
-              </span>
-            ))}
-          </div>
+          <p className="mt-5 max-w-xl text-sm leading-relaxed text-muted-foreground">
+            <span className="text-foreground">Города</span>,{" "}
+            <span className="text-foreground">законы</span>,{" "}
+            <span className="text-foreground">экономика</span> и{" "}
+            <span className="text-foreground">политика</span> RepublicMC — в одной вики.
+          </p>
         </section>
 
         <aside className="space-y-3">
