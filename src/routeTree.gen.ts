@@ -11,11 +11,16 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as ArticlesRouteImport } from './routes/articles'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as RecentRouteImport } from './routes/recent'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as SearchRouteImport } from './routes/search'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedCabinetRouteImport } from './routes/_authenticated/cabinet'
 import { Route as AuthenticatedEditorRouteImport } from './routes/_authenticated/editor'
 import { Route as ArticleSlugRouteImport } from './routes/article.$slug'
+import { Route as CategoryNameRouteImport } from './routes/category.$name'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -26,9 +31,29 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ArticlesRoute = ArticlesRouteImport.update({
+  id: '/articles',
+  path: '/articles',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RecentRoute = RecentRouteImport.update({
+  id: '/recent',
+  path: '/recent',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SearchRoute = SearchRouteImport.update({
+  id: '/search',
+  path: '/search',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
@@ -51,55 +76,106 @@ const ArticleSlugRoute = ArticleSlugRouteImport.update({
   path: '/article/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CategoryNameRoute = CategoryNameRouteImport.update({
+  id: '/category/$name',
+  path: '/category/$name',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/articles': typeof ArticlesRoute
   '/auth': typeof AuthRoute
+  '/recent': typeof RecentRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/search': typeof SearchRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/cabinet': typeof AuthenticatedCabinetRoute
   '/editor': typeof AuthenticatedEditorRoute
   '/article/$slug': typeof ArticleSlugRoute
+  '/category/$name': typeof CategoryNameRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/articles': typeof ArticlesRoute
   '/auth': typeof AuthRoute
+  '/recent': typeof RecentRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/search': typeof SearchRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/cabinet': typeof AuthenticatedCabinetRoute
   '/editor': typeof AuthenticatedEditorRoute
   '/article/$slug': typeof ArticleSlugRoute
+  '/category/$name': typeof CategoryNameRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/articles': typeof ArticlesRoute
   '/auth': typeof AuthRoute
+  '/recent': typeof RecentRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/search': typeof SearchRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/cabinet': typeof AuthenticatedCabinetRoute
   '/_authenticated/editor': typeof AuthenticatedEditorRoute
   '/article/$slug': typeof ArticleSlugRoute
+  '/category/$name': typeof CategoryNameRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/auth' | '/admin' | '/cabinet' | '/editor' | '/article/$slug'
+    | '/'
+    | '/articles'
+    | '/auth'
+    | '/recent'
+    | '/reset-password'
+    | '/search'
+    | '/admin'
+    | '/cabinet'
+    | '/editor'
+    | '/article/$slug'
+    | '/category/$name'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/admin' | '/cabinet' | '/editor' | '/article/$slug'
+  to:
+    | '/'
+    | '/articles'
+    | '/auth'
+    | '/recent'
+    | '/reset-password'
+    | '/search'
+    | '/admin'
+    | '/cabinet'
+    | '/editor'
+    | '/article/$slug'
+    | '/category/$name'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
+    | '/articles'
     | '/auth'
+    | '/recent'
+    | '/reset-password'
+    | '/search'
     | '/_authenticated/admin'
     | '/_authenticated/cabinet'
     | '/_authenticated/editor'
     | '/article/$slug'
+    | '/category/$name'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  ArticlesRoute: typeof ArticlesRoute
   AuthRoute: typeof AuthRoute
+  RecentRoute: typeof RecentRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
+  SearchRoute: typeof SearchRoute
   ArticleSlugRoute: typeof ArticleSlugRoute
+  CategoryNameRoute: typeof CategoryNameRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -118,11 +194,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/articles': {
+      id: '/articles'
+      path: '/articles'
+      fullPath: '/articles'
+      preLoaderRoute: typeof ArticlesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth': {
       id: '/auth'
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/recent': {
+      id: '/recent'
+      path: '/recent'
+      fullPath: '/recent'
+      preLoaderRoute: typeof RecentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/search': {
+      id: '/search'
+      path: '/search'
+      fullPath: '/search'
+      preLoaderRoute: typeof SearchRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/admin': {
@@ -153,6 +257,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ArticleSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/category/$name': {
+      id: '/category/$name'
+      path: '/category/$name'
+      fullPath: '/category/$name'
+      preLoaderRoute: typeof CategoryNameRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -174,8 +285,13 @@ const AuthenticatedRouteRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  ArticlesRoute: ArticlesRoute,
   AuthRoute: AuthRoute,
+  RecentRoute: RecentRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
+  SearchRoute: SearchRoute,
   ArticleSlugRoute: ArticleSlugRoute,
+  CategoryNameRoute: CategoryNameRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

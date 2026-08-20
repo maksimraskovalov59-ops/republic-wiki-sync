@@ -1,11 +1,12 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
-import { Clock, Eye, MessageSquare, PencilLine, Send, Tag, UserRound } from "lucide-react";
+import { Clock, Eye, MessageSquare, PencilLine, Send, Tag, Trash2, UserRound, X } from "lucide-react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { PixelField } from "@/components/PixelField";
-import { addComment, getArticle, getComments } from "@/lib/wiki.functions";
+import { addComment, deleteComment, getArticle, getComments, createEditSuggestion } from "@/lib/wiki.functions";
 import { useAuth } from "@/hooks/useAuth";
+import { Markdown, extractHeadings } from "@/components/Markdown";
 
 export const Route = createFileRoute("/article/$slug")({
   loader: ({ params }) => getArticle({ data: { slug: params.slug } }),
@@ -21,16 +22,19 @@ export const Route = createFileRoute("/article/$slug")({
     }
     const title = `${article.title} — RepublicMC WIKI`;
     const description = article.summary || `Статья «${article.title}» в энциклопедии RepublicMC.`;
-    return {
-      meta: [
-        { title },
-        { name: "description", content: description },
-        { property: "og:title", content: title },
-        { property: "og:description", content: description },
-        { property: "og:type", content: "article" },
-        { name: "twitter:card", content: "summary_large_image" },
-      ],
-    };
+    const meta: { title: string }[] & ({ name: string; content: string } | { property: string; content: string })[] = [
+      { title },
+      { name: "description", content: description },
+      { property: "og:title", content: title },
+      { property: "og:description", content: description },
+      { property: "og:type", content: "article" },
+      { name: "twitter:card", content: "summary_large_image" },
+    ];
+    if (article.cover_url?.startsWith("http")) {
+      meta.push({ property: "og:image", content: article.cover_url });
+      meta.push({ name: "twitter:image", content: article.cover_url });
+    }
+    return { meta };
   },
   component: ArticlePage,
 });
@@ -45,29 +49,6 @@ function formatDate(iso: string) {
   });
 }
 
-type Block =
-  | { kind: "h2"; id: string; text: string }
-  | { kind: "li"; text: string }
-  | { kind: "quote"; text: string }
-  | { kind: "p"; text: string };
-
-function parseContent(content: string): Block[] {
-  return content
-    .split(/\n+/)
-    .map((raw) => raw.trim())
-    .filter(Boolean)
-    .map((line, i): Block => {
-      if (line.startsWith("## ")) {
-        const text = line.slice(3).trim();
-        return { kind: "h2", id: `s-${i}`, text };
-      }
-      if (line.startsWith("# ")) return { kind: "h2", id: `s-${i}`, text: line.slice(2).trim() };
-      if (line.startsWith("- ") || line.startsWith("* ")) return { kind: "li", text: line.slice(2).trim() };
-      if (line.startsWith("> ")) return { kind: "quote", text: line.slice(2).trim() };
-      return { kind: "p", text: line };
-    });
-}
-
 function ArticlePage() {
   const { article, revisions, related } = Route.useLoaderData();
   const { slug } = Route.useParams();
@@ -75,14 +56,17 @@ function ArticlePage() {
   const router = useRouter();
   const send = useServerFn(addComment);
   const loadComments = useServerFn(getComments);
+  const removeComment = useServerFn(deleteComment);
+  const suggest = useServerFn(createEditSuggestion);
 
   const [comments, setComments] = useState<Awaited<ReturnType<typeof getComments>> | null>(null);
   const [body, setBody] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [commentError, setCommentError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
-
-  const blocks = useMemo(() => parseContent(article?.content ?? ""), [article?.content]);
-  const headings = blocks.filter((b): b is Extract<Block, { kind: "h2" }> => b.kind === "h2");
+  const [suggestOpen, setSuggestOpen] = useState(false);
+  const [suggestBody, setSuggestBody] = useState(article?.content ?? "");
+  const [suggestNote, setSuggestNote] = useState("");
+  const [suggestMsg, setSuggestMsg] = useState<string | null>(null);
 
   if (!article) {
     return (
@@ -109,6 +93,7 @@ function ArticlePage() {
     );
   }
 
+  const headings = useMemo(() => extractHeadings(article.content), [article.content]);
   const articleId = article.id;
 
   async function refreshComments() {
@@ -116,19 +101,54 @@ function ArticlePage() {
     setComments(rows);
   }
 
-  async function submit(e: React.FormEvent) {
+  async function submitComment(e: React.FormEvent) {
     e.preventDefault();
     setSending(true);
-    setError(null);
+    setCommentError(null);
     const res = await send({ data: { articleId, body } });
     setSending(false);
     if (!res.ok) {
-      setError(res.error);
+      setCommentError(res.error);
       return;
     }
     setBody("");
     await refreshComments();
   }
+
+  async function handleDeleteComment(id: string) {
+    if (!confirm("Удалить комментарий?")) return;
+    const res = await removeComment({ data: { id } });
+    if (!res.ok) {
+      setCommentError(res.error);
+      return;
+    }
+    setComments((prev) => prev?.filter((c) => c.id !== id) ?? []);
+  }
+
+  async function submitSuggestion(e: React.FormEvent) {
+    e.preventDefault();
+    setSuggestMsg(null);
+    const res = await suggest({
+      data: {
+        articleId,
+        title: article.title,
+        summary: article.summary,
+        content: suggestBody,
+        categories: article.categories,
+        coverUrl: article.cover_url,
+        note: suggestNote || "Правка",
+      },
+    });
+    if (!res.ok) {
+      setSuggestMsg(res.error);
+      return;
+    }
+    setSuggestMsg("Правка отправлена на рассмотрение администрации.");
+    setSuggestBody(article.content);
+    setSuggestNote("");
+    setTimeout(() => setSuggestOpen(false), 1500);
+  }
+
 
   const canEdit = isAdmin || (!!user && user.id === article.author_id);
 
@@ -165,12 +185,14 @@ function ArticlePage() {
               </h2>
               <div className="flex flex-wrap gap-2">
                 {article.categories.map((c) => (
-                  <span
+                  <Link
                     key={c}
-                    className="rounded-full border border-border bg-secondary px-3 py-1 text-xs text-muted-foreground"
+                    to="/category/$name"
+                    params={{ name: c }}
+                    className="rounded-full border border-border bg-secondary px-3 py-1 text-xs text-muted-foreground transition-colors hover:border-cyan hover:text-foreground"
                   >
                     {c}
-                  </span>
+                  </Link>
                 ))}
               </div>
             </section>
@@ -198,7 +220,7 @@ function ArticlePage() {
 
         <article className="surface-card min-w-0 p-5 sm:p-8">
           <p className="text-xs tracking-widest text-muted-foreground uppercase">
-            {article.kind === "news" ? "Новость" : (article.categories[0] ?? "Статья")}
+            {article.kind === "news" ? "Новость" : article.categories[0] ?? "Статья"}
           </p>
           <h1 className="mt-2 text-3xl font-extrabold sm:text-5xl">
             <span className="text-brand-gradient">{article.title}</span>
@@ -229,14 +251,23 @@ function ArticlePage() {
                 <PencilLine className="size-4 shrink-0 text-cyan" /> Редактировать
               </Link>
             ) : (
-              <Link
-                to={user ? "/editor" : "/auth"}
-                search={{}}
-                className="flex items-center gap-2 rounded-md border border-border bg-secondary px-3 py-2 text-sm transition-shadow hover:glow-cyan"
-              >
-                <PencilLine className="size-4 shrink-0 text-cyan" />
-                {user ? "Предложить статью" : "Войдите, чтобы писать"}
-              </Link>
+              <>
+                <button
+                  type="button"
+                  onClick={() => setSuggestOpen((v) => !v)}
+                  className="flex items-center gap-2 rounded-md border border-border bg-secondary px-3 py-2 text-sm transition-shadow hover:glow-cyan"
+                >
+                  <PencilLine className="size-4 shrink-0 text-cyan" /> Предложить правку
+                </button>
+                <Link
+                  to={user ? "/editor" : "/auth"}
+                  search={{}}
+                  className="flex items-center gap-2 rounded-md border border-border bg-secondary px-3 py-2 text-sm transition-shadow hover:glow-cyan"
+                >
+                  <PencilLine className="size-4 shrink-0 text-cyan" />
+                  {user ? "Новая статья" : "Войдите, чтобы писать"}
+                </Link>
+              </>
             )}
             <a
               href="#comments"
@@ -247,33 +278,52 @@ function ArticlePage() {
             </a>
           </div>
 
-          <div className="mt-8 space-y-5 text-sm leading-7 text-muted-foreground sm:text-base">
-            {blocks.map((b, i) =>
-              b.kind === "h2" ? (
-                <h2
-                  key={i}
-                  id={b.id}
-                  className="scroll-mt-24 pt-4 text-xl font-bold text-foreground sm:text-2xl"
-                >
-                  {b.text}
-                </h2>
-              ) : b.kind === "li" ? (
-                <div key={i} className="flex gap-3">
-                  <span className="mt-2.5 size-1.5 shrink-0 bg-cyan" />
-                  <span>{b.text}</span>
-                </div>
-              ) : b.kind === "quote" ? (
-                <blockquote
-                  key={i}
-                  className="border-l-2 border-magenta bg-secondary/60 px-4 py-3 text-foreground italic"
-                >
-                  {b.text}
-                </blockquote>
-              ) : (
-                <p key={i}>{b.text}</p>
-              ),
-            )}
+          {article.cover_url ? (
+            <img
+              src={article.cover_url}
+              alt={article.title}
+              className="mt-8 w-full rounded-lg border border-border object-cover"
+            />
+          ) : null}
+
+          <div className="mt-8">
+            <Markdown>{article.content}</Markdown>
           </div>
+
+          {suggestOpen ? (
+            <form onSubmit={submitSuggestion} className="surface-card mt-8 border border-cyan/40 p-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-cyan">Предложить правку</h3>
+                <button type="button" onClick={() => setSuggestOpen(false)} className="text-muted-foreground">
+                  <X className="size-4" />
+                </button>
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Отправьте предложенный вариант текста. Администрация сможет сравнить изменения и принять или отклонить правку.
+              </p>
+              <textarea
+                value={suggestBody}
+                onChange={(e) => setSuggestBody(e.target.value)}
+                rows={10}
+                className="mt-3 w-full rounded-lg border border-border bg-secondary px-3 py-2 text-sm font-mono outline-none focus:border-cyan"
+              />
+              <input
+                value={suggestNote}
+                onChange={(e) => setSuggestNote(e.target.value)}
+                placeholder="Кратко: что изменилось?"
+                className="mt-2 w-full rounded-lg border border-border bg-secondary px-3 py-2 text-sm outline-none focus:border-cyan"
+              />
+              {suggestMsg && <p className="mt-2 text-sm text-cyan">{suggestMsg}</p>}
+              <button
+                type="submit"
+                disabled={!suggestBody.trim()}
+                className="glow-cyan mt-3 inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-accent-foreground disabled:opacity-50"
+                style={{ backgroundImage: "var(--gradient-brand)" }}
+              >
+                <Send className="size-4" /> Отправить правку
+              </button>
+            </form>
+          ) : null}
 
           {related.length > 0 ? (
             <section className="mt-10 border-t border-border pt-6">
@@ -307,7 +357,7 @@ function ArticlePage() {
             </div>
 
             {user ? (
-              <form onSubmit={submit} className="mt-4 space-y-2">
+              <form onSubmit={submitComment} className="mt-4 space-y-2">
                 <textarea
                   value={body}
                   onChange={(e) => setBody(e.target.value)}
@@ -316,7 +366,7 @@ function ArticlePage() {
                   placeholder="Поделитесь мнением или предложите правку…"
                   className="w-full rounded-lg border border-border bg-secondary/50 px-3 py-2 text-sm outline-none focus:border-cyan"
                 />
-                {error ? <p className="text-xs text-destructive">{error}</p> : null}
+                {commentError ? <p className="text-xs text-destructive">{commentError}</p> : null}
                 <button
                   type="submit"
                   disabled={sending || !body.trim()}
@@ -340,7 +390,19 @@ function ArticlePage() {
                 <li key={c.id} className="rounded-lg border border-border bg-secondary/40 p-3">
                   <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
                     <span className="text-magenta">{c.author_name}</span>
-                    <span>{formatDate(c.created_at)}</span>
+                    <div className="flex items-center gap-2">
+                      <span>{formatDate(c.created_at)}</span>
+                      {(isAdmin || c.author_id === user?.id) && (
+                        <button
+                          type="button"
+                          onClick={() => void handleDeleteComment(c.id)}
+                          className="text-destructive hover:text-foreground"
+                          aria-label="Удалить комментарий"
+                        >
+                          <Trash2 className="size-3.5" />
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <p className="mt-2 text-sm whitespace-pre-wrap text-foreground">{c.body}</p>
                 </li>

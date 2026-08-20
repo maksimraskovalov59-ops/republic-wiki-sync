@@ -138,6 +138,65 @@ export type Database = {
           },
         ]
       }
+      edit_suggestions: {
+        Row: {
+          article_id: string
+          author_id: string
+          author_name: string
+          categories: string[]
+          content: string
+          cover_url: string | null
+          created_at: string
+          id: string
+          note: string
+          reject_reason: string | null
+          status: Database["public"]["Enums"]["suggestion_status"]
+          summary: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          article_id: string
+          author_id: string
+          author_name?: string
+          categories?: string[]
+          content?: string
+          cover_url?: string | null
+          created_at?: string
+          id?: string
+          note?: string
+          reject_reason?: string | null
+          status?: Database["public"]["Enums"]["suggestion_status"]
+          summary?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          article_id?: string
+          author_id?: string
+          author_name?: string
+          categories?: string[]
+          content?: string
+          cover_url?: string | null
+          created_at?: string
+          id?: string
+          note?: string
+          reject_reason?: string | null
+          status?: Database["public"]["Enums"]["suggestion_status"]
+          summary?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "edit_suggestions_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "articles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -195,6 +254,7 @@ export type Database = {
       app_role: "admin" | "user"
       article_kind: "article" | "news"
       article_status: "draft" | "pending" | "published" | "rejected"
+      suggestion_status: "pending" | "accepted" | "rejected"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -325,6 +385,7 @@ export const Constants = {
       app_role: ["admin", "user"],
       article_kind: ["article", "news"],
       article_status: ["draft", "pending", "published", "rejected"],
+      suggestion_status: ["pending", "accepted", "rejected"],
     },
   },
 } as const
