@@ -280,13 +280,13 @@ function Index() {
           ) : null}
         </aside>
 
-        <section className="order-4 lg:col-span-3">
+        <section className="order-4 grid gap-6 lg:col-span-3 xl:grid-cols-[minmax(0,1fr)_360px] 2xl:grid-cols-[minmax(0,1fr)_420px]">
           <div className="surface-card p-5 sm:p-6">
             <h2 className="text-lg font-bold text-cyan">Разделы вики</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               Всё о сервере в одном месте — заходи в нужный раздел или начни с общего списка.
             </p>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {SECTIONS.map((s) =>
                 "params" in s ? (
                   <Link
@@ -310,6 +310,38 @@ function Index() {
                 ),
               )}
             </div>
+          </div>
+
+          <div className="surface-card p-5 sm:p-6">
+            <h2 className="flex items-center gap-2 text-lg font-bold text-magenta">
+              <Clock className="size-5 shrink-0" /> Последние обновления
+            </h2>
+            <ul className="mt-4 space-y-2">
+              {recent.articles.slice(0, 6).map((a) => (
+                <li key={a.slug}>
+                  <Link
+                    to="/article/$slug"
+                    params={{ slug: a.slug }}
+                    className="flex items-center justify-between gap-3 rounded-lg border border-border bg-secondary/40 px-3 py-2 transition-colors hover:border-magenta"
+                  >
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-medium text-foreground">
+                        {a.title}
+                      </span>
+                      <span className="block text-[11px] text-muted-foreground">
+                        {a.author_name}
+                      </span>
+                    </span>
+                    <span className="shrink-0 text-[11px] text-muted-foreground">
+                      {formatDate(a.updated_at)}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+            <Link to="/recent" className="mt-4 inline-block text-xs text-cyan hover:underline">
+              Все изменения →
+            </Link>
           </div>
         </section>
       </main>
