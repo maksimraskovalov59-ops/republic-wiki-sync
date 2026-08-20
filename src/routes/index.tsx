@@ -42,6 +42,29 @@ function formatDate(iso: string) {
   });
 }
 
+const SECTIONS = [
+  { label: "Все статьи", to: "/articles", hint: "Полный каталог материалов" },
+  { label: "Изменения", to: "/recent", hint: "Свежие правки вики" },
+  {
+    label: "Правила",
+    to: "/article/$slug",
+    params: { slug: "pravila" },
+    hint: "Законы и порядок сервера",
+  },
+  {
+    label: "Карта",
+    to: "/article/$slug",
+    params: { slug: "karta-servera" },
+    hint: "Города и территории",
+  },
+  {
+    label: "Сообщество",
+    to: "/article/$slug",
+    params: { slug: "soobshchestvo" },
+    hint: "Сайт и Telegram",
+  },
+] as const;
+
 function Index() {
   const { data } = useSuspenseQuery(homeQuery);
   const [query, setQuery] = useState("");
@@ -58,8 +81,8 @@ function Index() {
       <PixelField />
       <SiteHeader />
 
-      <main className="mx-auto grid max-w-7xl gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[280px_minmax(0,1fr)_300px]">
-        <aside className="space-y-3">
+      <main className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 sm:py-8 lg:grid-cols-[280px_minmax(0,1fr)_300px]">
+        <aside className="order-3 space-y-3 lg:order-1">
           <h2 className="flex items-center gap-2 text-lg font-bold text-cyan">
             <Newspaper className="size-5 shrink-0" /> Новости
           </h2>
@@ -91,15 +114,15 @@ function Index() {
           ))}
         </aside>
 
-        <section className="flex min-w-0 flex-col items-center pt-6 text-center">
-          <h1 className="text-5xl font-extrabold sm:text-7xl">
+        <section className="order-1 flex min-w-0 flex-col items-center text-center lg:order-2 lg:pt-6">
+          <h1 className="text-4xl font-extrabold sm:text-6xl lg:text-7xl">
             <span className="text-brand-gradient">REPUBLICMC</span>
           </h1>
-          <p className="mt-3 text-sm tracking-[0.3em] text-muted-foreground uppercase sm:text-base">
+          <p className="mt-2 text-xs tracking-[0.3em] text-muted-foreground uppercase sm:mt-3 sm:text-base">
             Encyclopedia &amp; Wiki
           </p>
 
-          <label className="glow-cyan mt-8 flex w-full items-center gap-3 rounded-xl border border-cyan/60 bg-card px-4 py-3 backdrop-blur">
+          <label className="glow-cyan mt-5 flex w-full items-center gap-3 rounded-xl border border-cyan/60 bg-card px-4 py-3 backdrop-blur sm:mt-8">
             <Search className="size-5 shrink-0 text-cyan" />
             <input
               type="search"
@@ -140,7 +163,7 @@ function Index() {
           </p>
         </section>
 
-        <aside className="space-y-3">
+        <aside className="order-2 space-y-3 lg:order-3">
           <h2 className="flex items-center gap-2 text-lg font-bold text-magenta">
             <Star className="size-5 shrink-0" /> Популярные статьи
           </h2>
@@ -179,6 +202,39 @@ function Index() {
             </Link>
           ) : null}
         </aside>
+
+        <section className="order-4 lg:col-span-3">
+          <div className="surface-card p-5 sm:p-6">
+            <h2 className="text-lg font-bold text-cyan">Разделы вики</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Всё о сервере в одном месте — заходи в нужный раздел или начни с общего списка.
+            </p>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+              {SECTIONS.map((s) =>
+                "params" in s ? (
+                  <Link
+                    key={s.label}
+                    to={s.to}
+                    params={s.params}
+                    className="rounded-lg border border-border bg-secondary/40 p-4 transition-colors hover:border-cyan"
+                  >
+                    <span className="block text-sm font-semibold text-foreground">{s.label}</span>
+                    <span className="mt-1 block text-xs text-muted-foreground">{s.hint}</span>
+                  </Link>
+                ) : (
+                  <Link
+                    key={s.label}
+                    to={s.to}
+                    className="rounded-lg border border-border bg-secondary/40 p-4 transition-colors hover:border-cyan"
+                  >
+                    <span className="block text-sm font-semibold text-foreground">{s.label}</span>
+                    <span className="mt-1 block text-xs text-muted-foreground">{s.hint}</span>
+                  </Link>
+                ),
+              )}
+            </div>
+          </div>
+        </section>
       </main>
     </div>
   );

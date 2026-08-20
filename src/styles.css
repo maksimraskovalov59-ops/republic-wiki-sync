@@ -195,6 +195,45 @@
 }
 
 /* ---------------------------------------------------------------
+ * Passive floating cubes in the page background.
+ * --------------------------------------------------------------- */
+
+@keyframes cube-drift {
+  0% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+  50% {
+    transform: translate3d(14px, -26px, 0) rotate(180deg);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) rotate(360deg);
+  }
+}
+
+@keyframes cube-fade {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+@utility cube-float {
+  animation:
+    cube-drift var(--cube-duration, 18s) ease-in-out infinite,
+    cube-fade var(--cube-duration, 18s) ease-in-out infinite;
+  animation-delay: var(--cube-delay, 0s);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cube-float {
+    animation: none;
+  }
+}
+
+/* ---------------------------------------------------------------
  * Theme variants. Applied as a class on <html>: .theme-light etc.
  * The default (no class) theme is the neon-dark palette in :root.
  * --------------------------------------------------------------- */
