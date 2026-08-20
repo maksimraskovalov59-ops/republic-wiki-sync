@@ -9,7 +9,23 @@ import { Markdown } from "@/components/Markdown";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { getArticle, addComment, deleteComment, getComments, createEditSuggestion } from "@/lib/wiki.functions";
-import type { Article } from "@/integrations/supabase/types";
+type Article = {
+  id: string;
+  slug: string;
+  title: string;
+  summary: string;
+  content: string;
+  categories: string[];
+  cover_url: string | null;
+  author_name: string;
+  created_at: string;
+  views: number;
+  kind: string;
+  status: string;
+  updated_at: string;
+  author_id: string | null;
+  reject_reason: string | null;
+};
 
 export const Route = createFileRoute("/article/$slug")({
   head: ({ params }) => {

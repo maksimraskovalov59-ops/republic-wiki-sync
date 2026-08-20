@@ -30,7 +30,7 @@ export const Route = createFileRoute("/search")({
 
 function SearchPage() {
   const { q } = useSearch({ from: Route.id });
-  const navigate = useNavigate();
+  const navigate = useNavigate({ from: Route.id });
   const [query, setQuery] = useState(q ?? "");
   const { data: results, isFetching } = useQuery({
     queryKey: ["search", q ?? ""],
