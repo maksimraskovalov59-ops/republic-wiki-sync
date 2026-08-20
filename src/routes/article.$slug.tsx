@@ -6,6 +6,8 @@ import { Calendar, Edit3, MessageSquare, Tag, ThumbsUp, TrendingUp, User } from 
 import { SiteHeader } from "@/components/SiteHeader";
 import { PixelField } from "@/components/PixelField";
 import { Markdown } from "@/components/Markdown";
+import { LowReputationNotice } from "@/components/LowReputationNotice";
+import { ReputationVote } from "@/components/ReputationVote";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { getArticle, addComment, deleteComment, getComments, createEditSuggestion } from "@/lib/wiki.functions";
@@ -74,6 +76,7 @@ function ArticlePage() {
   const article = payload?.article ?? null;
   const revisions = payload?.revisions ?? [];
   const related = payload?.related ?? [];
+  const author = payload?.author ?? null;
 
   const { data: comments } = useQuery({
     queryKey: ["comments", article?.id],
@@ -184,9 +187,19 @@ function ArticlePage() {
               </h1>
 
               <div className="mt-4 flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
-                <span className="flex items-center gap-1">
-                  <User className="size-3.5" /> {articleData.author_name}
-                </span>
+                {author ? (
+                  <Link
+                    to="/user/$username"
+                    params={{ username: author.username }}
+                    className="flex items-center gap-1 hover:text-cyan"
+                  >
+                    <User className="size-3.5" /> {author.username}
+                  </Link>
+                ) : (
+                  <span className="flex items-center gap-1">
+                    <User className="size-3.5" /> {articleData.author_name}
+                  </span>
+                )}
                 <span className="flex items-center gap-1">
                   <Calendar className="size-3.5" /> {new Date(articleData.created_at).toLocaleDateString("ru-RU")}
                 </span>
@@ -194,6 +207,12 @@ function ArticlePage() {
                   <TrendingUp className="size-3.5" /> {articleData.views} просмотров
                 </span>
               </div>
+
+              {author && (
+                <div className="mt-4">
+                  <LowReputationNotice reputation={author.reputation} />
+                </div>
+              )}
 
               <div className="mt-6 text-sm leading-7 text-foreground">
                 <Markdown>{articleData.content}</Markdown>
@@ -343,6 +362,40 @@ function ArticlePage() {
         </article>
 
         <aside className="space-y-4">
+          {author && (
+            <section className="surface-card p-5">
+              <h2 className="text-sm font-bold tracking-wide text-cyan uppercase">Автор</h2>
+              <div className="mt-3 flex items-center gap-3">
+                {author.avatar_url ? (
+                  <img
+                    src={author.avatar_url}
+                    alt={`Аватар ${author.username}`}
+                    className="size-10 rounded-md object-cover"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className="grid size-10 place-items-center rounded-md bg-secondary text-xs text-muted-foreground">
+                    {author.username.slice(0, 2).toUpperCase()}
+                  </div>
+                )}
+                <Link
+                  to="/user/$username"
+                  params={{ username: author.username }}
+                  className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground hover:text-cyan"
+                >
+                  {author.username}
+                </Link>
+              </div>
+              <p className="mt-3 text-xs text-muted-foreground">Оцените вклад автора:</p>
+              <div className="mt-2">
+                <ReputationVote
+                  targetId={articleData.author_id!}
+                  reputation={author.reputation}
+                  targetName={author.username}
+                />
+              </div>
+            </section>
+          )}
           <section className="surface-card p-5">
             <h2 className="text-sm font-bold tracking-wide text-magenta uppercase">Похожие материалы</h2>
             {related.length === 0 ? (

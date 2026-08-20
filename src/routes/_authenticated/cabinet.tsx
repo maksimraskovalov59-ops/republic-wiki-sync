@@ -2,12 +2,23 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { LogOut, Palette, PencilLine, Plus, ShieldCheck, Sparkles } from "lucide-react";
+import {
+  ExternalLink,
+  LogOut,
+  Palette,
+  PencilLine,
+  Plus,
+  Save,
+  ShieldCheck,
+  Sparkles,
+  UserCog,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { claimAdmin } from "@/lib/wiki.functions";
+import { claimAdmin, getPublicProfile } from "@/lib/wiki.functions";
 import { SiteHeader } from "@/components/SiteHeader";
 import { PixelField } from "@/components/PixelField";
+import { LowReputationNotice } from "@/components/LowReputationNotice";
 import { useTheme } from "@/hooks/useTheme";
 import { ThemePicker } from "@/components/ThemePicker";
 
@@ -45,6 +56,57 @@ function Cabinet() {
   const [password, setPassword] = useState("");
   const [claimMsg, setClaimMsg] = useState<string | null>(null);
   const { theme, setTheme } = useTheme(!!user);
+  const [profileForm, setProfileForm] = useState<{ bio: string; link: string; avatar_url: string } | null>(null);
+  const [profileMsg, setProfileMsg] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  const profile = useQuery({
+    queryKey: ["my-profile", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("id,username,bio,link,avatar_url,reputation,created_at")
+        .eq("id", user!.id)
+        .maybeSingle();
+      return data ?? null;
+    },
+  });
+
+  const stats = useQuery({
+    queryKey: ["my-stats", username],
+    enabled: !!username,
+    queryFn: () => getPublicProfile({ data: { username: username! } }),
+  });
+
+  const form =
+    profileForm ?? {
+      bio: profile.data?.bio ?? "",
+      link: profile.data?.link ?? "",
+      avatar_url: profile.data?.avatar_url ?? "",
+    };
+
+  async function saveProfile(e: React.FormEvent) {
+    e.preventDefault();
+    if (!user) return;
+    setSaving(true);
+    setProfileMsg(null);
+    const { error } = await supabase
+      .from("profiles")
+      .update({
+        bio: form.bio.slice(0, 500),
+        link: form.link.trim() || null,
+        avatar_url: form.avatar_url.trim() || null,
+      })
+      .eq("id", user.id);
+    setSaving(false);
+    if (error) {
+      setProfileMsg("Не удалось сохранить профиль");
+      return;
+    }
+    setProfileMsg("Профиль сохранён");
+    await queryClient.invalidateQueries({ queryKey: ["my-profile", user.id] });
+  }
 
   const mine = useQuery({
     queryKey: ["my-articles", user?.id],
@@ -93,7 +155,17 @@ function Cabinet() {
               </h1>
               <p className="mt-1 text-sm text-muted-foreground">
                 {isAdmin ? "Роль: администратор" : "Роль: участник"}
+                {profile.data ? ` · репутация ${profile.data.reputation}` : ""}
               </p>
+              {username && (
+                <Link
+                  to="/user/$username"
+                  params={{ username }}
+                  className="mt-1 inline-flex items-center gap-1 text-xs text-cyan hover:underline"
+                >
+                  <ExternalLink className="size-3" /> Открыть публичный профиль
+                </Link>
+              )}
             </div>
             <div className="flex flex-wrap gap-2">
               <Link
@@ -154,9 +226,89 @@ function Cabinet() {
               })}
             </ul>
           </div>
+
+          <form onSubmit={saveProfile} className="surface-card p-5">
+            <h2 className="flex items-center gap-2 text-sm font-bold tracking-wide text-cyan uppercase">
+              <UserCog className="size-4" /> Профиль
+            </h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Аватар, описание и ссылка видны всем на вашей публичной странице.
+            </p>
+            <div className="mt-4 flex flex-wrap items-center gap-4">
+              {form.avatar_url ? (
+                <img
+                  src={form.avatar_url}
+                  alt="Ваш аватар"
+                  className="size-16 rounded-xl border border-border object-cover"
+                  loading="lazy"
+                />
+              ) : (
+                <div className="grid size-16 place-items-center rounded-xl border border-border bg-secondary text-lg font-bold text-muted-foreground">
+                  {(username ?? "??").slice(0, 2).toUpperCase()}
+                </div>
+              )}
+              <input
+                value={form.avatar_url}
+                onChange={(e) => setProfileForm({ ...form, avatar_url: e.target.value })}
+                placeholder="Ссылка на аватар (URL картинки)"
+                className="min-w-0 flex-1 rounded-md border border-border bg-secondary px-3 py-2 text-sm outline-none focus:border-cyan"
+              />
+            </div>
+            <textarea
+              value={form.bio}
+              onChange={(e) => setProfileForm({ ...form, bio: e.target.value })}
+              maxLength={500}
+              placeholder="О себе: ник в игре, чем занимаетесь на сервере…"
+              className="mt-3 min-h-[100px] w-full rounded-md border border-border bg-secondary px-3 py-2 text-sm outline-none focus:border-cyan"
+            />
+            <input
+              value={form.link}
+              onChange={(e) => setProfileForm({ ...form, link: e.target.value })}
+              placeholder="Ссылка (Telegram, сайт и т.д.)"
+              className="mt-3 w-full rounded-md border border-border bg-secondary px-3 py-2 text-sm outline-none focus:border-cyan"
+            />
+            <div className="mt-3 flex items-center gap-3">
+              <button
+                type="submit"
+                disabled={saving}
+                className="flex items-center gap-2 rounded-md border border-cyan/60 bg-secondary px-4 py-2 text-sm transition-shadow hover:glow-cyan disabled:opacity-50"
+              >
+                <Save className="size-4 text-cyan" /> {saving ? "Сохраняем…" : "Сохранить профиль"}
+              </button>
+              {profileMsg && <span className="text-xs text-muted-foreground">{profileMsg}</span>}
+            </div>
+          </form>
         </section>
 
         <aside className="space-y-4">
+          <section className="surface-card p-5">
+            <h2 className="text-sm font-bold tracking-wide text-magenta uppercase">Моя статистика</h2>
+            <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
+              <li className="flex items-center justify-between gap-3">
+                <span>Статей опубликовано</span>
+                <span className="font-semibold text-foreground">{stats.data?.stats.published ?? 0}</span>
+              </li>
+              <li className="flex items-center justify-between gap-3">
+                <span>Просмотров</span>
+                <span className="font-semibold text-foreground">{stats.data?.stats.views ?? 0}</span>
+              </li>
+              <li className="flex items-center justify-between gap-3">
+                <span>Правок</span>
+                <span className="font-semibold text-foreground">{stats.data?.stats.revisions ?? 0}</span>
+              </li>
+              <li className="flex items-center justify-between gap-3">
+                <span>Комментариев</span>
+                <span className="font-semibold text-foreground">{stats.data?.stats.comments ?? 0}</span>
+              </li>
+              <li className="flex items-center justify-between gap-3">
+                <span>Репутация</span>
+                <span className="font-semibold text-foreground">{profile.data?.reputation ?? 0}</span>
+              </li>
+            </ul>
+            <div className="mt-3">
+              <LowReputationNotice reputation={profile.data?.reputation} variant="profile" />
+            </div>
+          </section>
           <section className="surface-card p-5">
             <h2 className="flex items-center gap-2 text-sm font-bold tracking-wide text-cyan uppercase">
               <Palette className="size-4" /> Тема оформления

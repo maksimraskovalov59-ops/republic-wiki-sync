@@ -199,19 +199,55 @@ export type Database = {
       }
       profiles: {
         Row: {
+          avatar_url: string | null
+          bio: string
           created_at: string
           id: string
+          link: string | null
+          reputation: number
           username: string
         }
         Insert: {
+          avatar_url?: string | null
+          bio?: string
           created_at?: string
           id: string
+          link?: string | null
+          reputation?: number
           username: string
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string
+          created_at?: string
+          id?: string
+          link?: string | null
+          reputation?: number
+          username?: string
+        }
+        Relationships: []
+      }
+      user_reputation_votes: {
+        Row: {
+          created_at: string
+          id: string
+          target_id: string
+          value: number
+          voter_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          target_id: string
+          value: number
+          voter_id: string
         }
         Update: {
           created_at?: string
           id?: string
-          username?: string
+          target_id?: string
+          value?: number
+          voter_id?: string
         }
         Relationships: []
       }
@@ -249,6 +285,7 @@ export type Database = {
         Returns: boolean
       }
       increment_article_views: { Args: { _slug: string }; Returns: undefined }
+      is_creator: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "user"
