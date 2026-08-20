@@ -1,10 +1,11 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { Eye, Newspaper, Search, Sparkles, Star } from "lucide-react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { PixelField } from "@/components/PixelField";
-import { getHomeData } from "@/lib/wiki.functions";
+import { getHomeData, getRandomArticleSlug } from "@/lib/wiki.functions";
 
 const homeQuery = queryOptions({
   queryKey: ["home"],
@@ -68,6 +69,9 @@ const SECTIONS = [
 function Index() {
   const { data } = useSuspenseQuery(homeQuery);
   const [query, setQuery] = useState("");
+  const [spinning, setSpinning] = useState(false);
+  const navigate = useNavigate({ from: "/" });
+  const getRandom = useServerFn(getRandomArticleSlug);
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return [];
@@ -75,7 +79,18 @@ function Index() {
       .filter((item) => item.title.toLowerCase().includes(q))
       .slice(0, 6);
   }, [query, data]);
-  const lucky = data.popular[0]?.slug ?? data.news[0]?.slug;
+
+  const handleLucky = async () => {
+    setSpinning(true);
+    try {
+      const slug = await getRandom();
+      if (slug) navigate({ to: "/article/$slug", params: { slug } });
+    } finally {
+      setSpinning(false);
+    }
+  };
+
+  const hasArticles = data.popular.length > 0 || data.news.length > 0;
   return (
     <div className="min-h-screen bg-background text-foreground">
       <PixelField />
@@ -191,15 +206,16 @@ function Index() {
             </Link>
           ))}
 
-          {lucky ? (
-            <Link
-              to="/article/$slug"
-              params={{ slug: lucky }}
-              className="glow-magenta flex items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-semibold text-accent-foreground"
+          {hasArticles ? (
+            <button
+              type="button"
+              onClick={handleLucky}
+              disabled={spinning}
+              className="glow-magenta flex w-full items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-semibold text-accent-foreground disabled:opacity-70"
               style={{ backgroundImage: "var(--gradient-accent)" }}
             >
-              <Sparkles className="size-4 shrink-0" /> Мне повезёт!
-            </Link>
+              <Sparkles className={`size-4 shrink-0${spinning ? " animate-spin" : ""}`} /> Мне повезёт!
+            </button>
           ) : null}
         </aside>
 
