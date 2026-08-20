@@ -42,8 +42,30 @@ function formatDate(iso: string) {
   });
 }
 
+const SECTIONS = [
+  { label: "Все статьи", to: "/articles", hint: "Полный каталог материалов" },
+  { label: "Изменения", to: "/recent", hint: "Свежие правки вики" },
+  {
+    label: "Правила",
+    to: "/article/$slug",
+    params: { slug: "pravila" },
+    hint: "Законы и порядок сервера",
+  },
+  {
+    label: "Карта",
+    to: "/article/$slug",
+    params: { slug: "karta-servera" },
+    hint: "Города и территории",
+  },
+  {
+    label: "Сообщество",
+    to: "/article/$slug",
+    params: { slug: "soobshchestvo" },
+    hint: "Сайт и Telegram",
+  },
+] as const;
+
 function Index() {
-  const SECTIONS_UNUSED = null;
   const { data } = useSuspenseQuery(homeQuery);
   const [query, setQuery] = useState("");
   const results = useMemo(() => {
