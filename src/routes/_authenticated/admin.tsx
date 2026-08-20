@@ -1,11 +1,19 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Check, Newspaper, PencilLine, ShieldAlert, X } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { Check, Eye, GitPullRequest, Newspaper, PencilLine, ShieldAlert, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { SiteHeader } from "@/components/SiteHeader";
 import { PixelField } from "@/components/PixelField";
+import { Markdown } from "@/components/Markdown";
+import {
+  listEditSuggestions,
+  approveEditSuggestion,
+  rejectEditSuggestion,
+  EditSuggestion,
+} from "@/lib/wiki.functions";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => {
@@ -30,6 +38,10 @@ function AdminPage() {
   const { isAdmin, loading } = useAuth();
   const queryClient = useQueryClient();
   const [reason, setReason] = useState<Record<string, string>>({});
+  const [suggestionReason, setSuggestionReason] = useState<Record<string, string>>({});
+  const [viewing, setViewing] = useState<string | null>(null);
+  const doApprove = useServerFn(approveEditSuggestion);
+  const doReject = useServerFn(rejectEditSuggestion);
 
   const pending = useQuery({
     queryKey: ["admin-pending"],
@@ -58,11 +70,35 @@ function AdminPage() {
     },
   });
 
+  const suggestions = useQuery<EditSuggestion[]>({
+    queryKey: ["edit-suggestions"],
+    enabled: isAdmin,
+    queryFn: () => listEditSuggestions(),
+  });
+
   async function moderate(id: string, status: "published" | "rejected") {
     await supabase
       .from("articles")
       .update({ status, reject_reason: status === "rejected" ? (reason[id] ?? "Не соответствует правилам") : null })
       .eq("id", id);
+    await queryClient.invalidateQueries();
+  }
+
+  async function approveSuggestion(id: string) {
+    const res = await doApprove({ data: { suggestionId: id } });
+    if (!res.ok) {
+      alert(res.error);
+      return;
+    }
+    await queryClient.invalidateQueries();
+  }
+
+  async function rejectSuggestion(id: string) {
+    const res = await doReject({ data: { suggestionId: id, reason: suggestionReason[id] ?? "" } });
+    if (!res.ok) {
+      alert(res.error);
+      return;
+    }
     await queryClient.invalidateQueries();
   }
 
@@ -78,9 +114,7 @@ function AdminPage() {
         <main className="mx-auto max-w-md px-4 py-20 text-center">
           <ShieldAlert className="mx-auto size-10 text-magenta" />
           <h1 className="mt-4 text-2xl font-bold">Доступ только для администрации</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Подтвердите права администратора в кабинете.
-          </p>
+          <p className="mt-2 text-sm text-muted-foreground">Подтвердите права администратора в кабинете.</p>
           <Link
             to="/cabinet"
             className="mt-6 inline-block rounded-md border border-border bg-secondary px-4 py-2 text-sm"
@@ -92,6 +126,8 @@ function AdminPage() {
     );
   }
 
+  const pendingSuggestions = (suggestions.data ?? []).filter((s) => s.status === "pending");
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <PixelField />
@@ -102,16 +138,12 @@ function AdminPage() {
             <h1 className="text-2xl font-extrabold sm:text-3xl">
               <span className="text-brand-gradient">Админ-панель</span>
             </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Модерация материалов и публикация новостей сервера.
-            </p>
+            <p className="mt-1 text-sm text-muted-foreground">Модерация материалов и публикация новостей сервера.</p>
           </div>
 
           <div className="surface-card p-5">
             <h2 className="text-sm font-bold tracking-wide text-cyan uppercase">Очередь модерации</h2>
-            {pending.data?.length === 0 && (
-              <p className="mt-3 text-sm text-muted-foreground">Новых заявок нет.</p>
-            )}
+            {pending.data?.length === 0 && <p className="mt-3 text-sm text-muted-foreground">Новых заявок нет.</p>}
             <ul className="mt-3 space-y-3">
               {(pending.data ?? []).map((a) => (
                 <li key={a.id} className="rounded-lg border border-border bg-secondary/40 p-4">
@@ -155,9 +187,77 @@ function AdminPage() {
           </div>
 
           <div className="surface-card p-5">
-            <h2 className="text-sm font-bold tracking-wide text-magenta uppercase">
-              Опубликованные материалы
+            <h2 className="flex items-center gap-2 text-sm font-bold tracking-wide text-magenta uppercase">
+              <GitPullRequest className="size-4" /> Предложенные правки
             </h2>
+            {pendingSuggestions.length === 0 ? (
+              <p className="mt-3 text-sm text-muted-foreground">Предложений правок нет.</p>
+            ) : (
+              <ul className="mt-3 space-y-3">
+                {pendingSuggestions.map((s) => {
+                  const article = s.articles;
+                  return (
+                    <li key={s.id} className="rounded-lg border border-border bg-secondary/40 p-4">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <p className="text-sm font-semibold text-foreground">
+                          Правка к «{article?.title ?? "—"}»
+                        </p>
+                        <span className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">
+                          {s.author_name}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-xs text-muted-foreground">{s.note}</p>
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                        <button
+                          onClick={() => setViewing(s.id)}
+                          className="flex items-center gap-1.5 rounded-md border border-border bg-secondary px-3 py-1.5 text-xs"
+                        >
+                          <Eye className="size-3.5" /> Просмотреть
+                        </button>
+                        <button
+                          onClick={() => void approveSuggestion(s.id)}
+                          className="flex items-center gap-1.5 rounded-md border border-cyan/60 bg-secondary px-3 py-1.5 text-xs transition-shadow hover:glow-cyan"
+                        >
+                          <Check className="size-3.5 text-cyan" /> Принять
+                        </button>
+                        <input
+                          value={suggestionReason[s.id] ?? ""}
+                          onChange={(e) => setSuggestionReason((r) => ({ ...r, [s.id]: e.target.value }))}
+                          placeholder="Причина отклонения"
+                          className="min-w-0 flex-1 rounded-md border border-border bg-secondary px-3 py-1.5 text-xs outline-none focus:border-magenta"
+                        />
+                        <button
+                          onClick={() => void rejectSuggestion(s.id)}
+                          className="flex items-center gap-1.5 rounded-md border border-magenta/60 bg-secondary px-3 py-1.5 text-xs transition-shadow hover:glow-magenta"
+                        >
+                          <X className="size-3.5 text-magenta" /> Отклонить
+                        </button>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+
+          {viewing ? (
+            <div className="surface-card p-5">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-bold text-foreground">Предпросмотр правки</h3>
+                <button onClick={() => setViewing(null)} className="text-xs text-muted-foreground">
+                  Закрыть
+                </button>
+              </div>
+              <div className="prose prose-sm mt-3 max-h-[400px] overflow-y-auto rounded-md border border-border bg-secondary/30 p-3">
+                <Markdown>
+                  {(suggestions.data ?? []).find((s) => s.id === viewing)?.content ?? ""}
+                </Markdown>
+              </div>
+            </div>
+          ) : null}
+
+          <div className="surface-card p-5">
+            <h2 className="text-sm font-bold tracking-wide text-magenta uppercase">Опубликованные материалы</h2>
             <ul className="mt-3 space-y-2">
               {(published.data ?? []).map((a) => (
                 <li
