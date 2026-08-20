@@ -2,19 +2,38 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { Eye, Newspaper, Search, Sparkles, Star } from "lucide-react";
+import { Clock, Eye, FolderTree, Newspaper, Search, Sparkles, Star } from "lucide-react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { PixelField } from "@/components/PixelField";
-import { getHomeData, getRandomArticleSlug } from "@/lib/wiki.functions";
+import {
+  getCategories,
+  getHomeData,
+  getRandomArticleSlug,
+  getRecentChanges,
+} from "@/lib/wiki.functions";
 
 const homeQuery = queryOptions({
   queryKey: ["home"],
   queryFn: () => getHomeData(),
 });
 
+const categoriesQuery = queryOptions({
+  queryKey: ["categories"],
+  queryFn: () => getCategories(),
+});
+
+const recentQuery = queryOptions({
+  queryKey: ["recent"],
+  queryFn: () => getRecentChanges(),
+});
+
 export const Route = createFileRoute("/")({
   loader: async ({ context }) => {
-    await context.queryClient.ensureQueryData(homeQuery);
+    await Promise.all([
+      context.queryClient.ensureQueryData(homeQuery),
+      context.queryClient.ensureQueryData(categoriesQuery),
+      context.queryClient.ensureQueryData(recentQuery),
+    ]);
   },
   head: () => ({
     meta: [
@@ -68,6 +87,8 @@ const SECTIONS = [
 
 function Index() {
   const { data } = useSuspenseQuery(homeQuery);
+  const { data: categories } = useSuspenseQuery(categoriesQuery);
+  const { data: recent } = useSuspenseQuery(recentQuery);
   const [query, setQuery] = useState("");
   const [spinning, setSpinning] = useState(false);
   const navigate = useNavigate({ from: "/" });
@@ -91,6 +112,10 @@ function Index() {
   };
 
   const hasArticles = data.popular.length > 0 || data.news.length > 0;
+  const totals = useMemo(() => {
+    const views = data.popular.reduce((sum, p) => sum + (p.views ?? 0), 0);
+    return { articles: recent.articles.length, views };
+  }, [data.popular, recent.articles]);
   return (
     <div className="min-h-screen text-foreground">
       <PixelField />
@@ -176,6 +201,42 @@ function Index() {
             <span className="text-foreground">экономика</span> и{" "}
             <span className="text-foreground">политика</span> RepublicMC — в одной вики.
           </p>
+
+          <div className="mt-6 grid w-full grid-cols-2 gap-3 sm:mt-8 lg:grid-cols-4">
+            {[
+              { label: "Материалов", value: totals.articles },
+              { label: "Просмотров", value: totals.views },
+              { label: "Категорий", value: categories.length },
+              { label: "Правок", value: recent.revisions.length },
+            ].map((s) => (
+              <div key={s.label} className="surface-card p-4">
+                <span className="block text-2xl font-extrabold text-brand-gradient">{s.value}</span>
+                <span className="mt-1 block text-[11px] tracking-widest text-muted-foreground uppercase">
+                  {s.label}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {categories.length > 0 ? (
+            <div className="surface-card mt-4 w-full p-5 text-left">
+              <h2 className="flex items-center gap-2 text-base font-bold text-cyan">
+                <FolderTree className="size-4 shrink-0" /> Категории
+              </h2>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {categories.map((c) => (
+                  <Link
+                    key={c}
+                    to="/category/$name"
+                    params={{ name: c }}
+                    className="rounded-md border border-border bg-secondary/40 px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-cyan hover:text-foreground"
+                  >
+                    {c}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          ) : null}
         </section>
 
         <aside className="order-2 space-y-3 lg:order-3">
@@ -219,13 +280,13 @@ function Index() {
           ) : null}
         </aside>
 
-        <section className="order-4 lg:col-span-3">
+        <section className="order-4 grid items-start gap-6 lg:col-span-3 xl:grid-cols-[minmax(0,1fr)_360px] 2xl:grid-cols-[minmax(0,1fr)_420px]">
           <div className="surface-card p-5 sm:p-6">
             <h2 className="text-lg font-bold text-cyan">Разделы вики</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               Всё о сервере в одном месте — заходи в нужный раздел или начни с общего списка.
             </p>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {SECTIONS.map((s) =>
                 "params" in s ? (
                   <Link
@@ -249,6 +310,38 @@ function Index() {
                 ),
               )}
             </div>
+          </div>
+
+          <div className="surface-card p-5 sm:p-6">
+            <h2 className="flex items-center gap-2 text-lg font-bold text-magenta">
+              <Clock className="size-5 shrink-0" /> Последние обновления
+            </h2>
+            <ul className="mt-4 space-y-2">
+              {recent.articles.slice(0, 6).map((a) => (
+                <li key={a.slug}>
+                  <Link
+                    to="/article/$slug"
+                    params={{ slug: a.slug }}
+                    className="flex items-center justify-between gap-3 rounded-lg border border-border bg-secondary/40 px-3 py-2 transition-colors hover:border-magenta"
+                  >
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-medium text-foreground">
+                        {a.title}
+                      </span>
+                      <span className="block text-[11px] text-muted-foreground">
+                        {a.author_name}
+                      </span>
+                    </span>
+                    <span className="shrink-0 text-[11px] text-muted-foreground">
+                      {formatDate(a.updated_at)}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+            <Link to="/recent" className="mt-4 inline-block text-xs text-cyan hover:underline">
+              Все изменения →
+            </Link>
           </div>
         </section>
       </main>
