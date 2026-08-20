@@ -132,7 +132,7 @@ function ArticlePage() {
 
   if (!article) {
     return (
-      <div className="min-h-screen bg-background text-foreground">
+      <div className="min-h-screen text-foreground">
         <PixelField />
         <SiteHeader />
         <main className="mx-auto max-w-4xl px-4 py-20 text-center">
@@ -149,7 +149,7 @@ function ArticlePage() {
   const articleData = article as Article;
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen text-foreground">
       <PixelField />
       <SiteHeader />
 

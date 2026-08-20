@@ -72,7 +72,7 @@ function RecentPage() {
   ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen text-foreground">
       <PixelField />
       <SiteHeader />
       <main className="mx-auto max-w-3xl px-4 xl:max-w-5xl py-8 sm:px-6">
