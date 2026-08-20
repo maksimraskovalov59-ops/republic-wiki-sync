@@ -2,19 +2,38 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { Eye, Newspaper, Search, Sparkles, Star } from "lucide-react";
+import { Clock, Eye, FolderTree, Newspaper, Search, Sparkles, Star } from "lucide-react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { PixelField } from "@/components/PixelField";
-import { getHomeData, getRandomArticleSlug } from "@/lib/wiki.functions";
+import {
+  getCategories,
+  getHomeData,
+  getRandomArticleSlug,
+  getRecentChanges,
+} from "@/lib/wiki.functions";
 
 const homeQuery = queryOptions({
   queryKey: ["home"],
   queryFn: () => getHomeData(),
 });
 
+const categoriesQuery = queryOptions({
+  queryKey: ["categories"],
+  queryFn: () => getCategories(),
+});
+
+const recentQuery = queryOptions({
+  queryKey: ["recent"],
+  queryFn: () => getRecentChanges(),
+});
+
 export const Route = createFileRoute("/")({
   loader: async ({ context }) => {
-    await context.queryClient.ensureQueryData(homeQuery);
+    await Promise.all([
+      context.queryClient.ensureQueryData(homeQuery),
+      context.queryClient.ensureQueryData(categoriesQuery),
+      context.queryClient.ensureQueryData(recentQuery),
+    ]);
   },
   head: () => ({
     meta: [
@@ -68,6 +87,8 @@ const SECTIONS = [
 
 function Index() {
   const { data } = useSuspenseQuery(homeQuery);
+  const { data: categories } = useSuspenseQuery(categoriesQuery);
+  const { data: recent } = useSuspenseQuery(recentQuery);
   const [query, setQuery] = useState("");
   const [spinning, setSpinning] = useState(false);
   const navigate = useNavigate({ from: "/" });
