@@ -6,11 +6,12 @@ type Props = {
   value: ThemeId;
   onChange: (id: ThemeId) => void;
   canUsePremium: boolean;
+  columns?: 1 | 2;
 };
 
-export function ThemePicker({ value, onChange, canUsePremium }: Props) {
+export function ThemePicker({ value, onChange, canUsePremium, columns = 2 }: Props) {
   return (
-    <div className="mt-3 grid gap-2 sm:grid-cols-2">
+    <div className={`mt-3 grid gap-2 ${columns === 2 ? "sm:grid-cols-2" : "grid-cols-1"}`}>
       {THEMES.map((t) => {
         const locked = t.premium && !canUsePremium;
         const active = value === t.id;
@@ -46,7 +47,7 @@ export function ThemePicker({ value, onChange, canUsePremium }: Props) {
         );
       })}
       {!canUsePremium ? (
-        <p className="text-xs text-muted-foreground sm:col-span-2">
+        <p className={`text-xs text-muted-foreground ${columns === 2 ? "sm:col-span-2" : ""}`}>
           Дополнительные темы открываются после{" "}
           <Link to="/auth" className="text-cyan underline">
             регистрации
