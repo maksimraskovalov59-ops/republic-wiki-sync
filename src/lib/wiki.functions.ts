@@ -73,7 +73,8 @@ export const getArticle = createServerFn({ method: "GET" })
         .neq("slug", data.slug)
         .limit(4),
     ]);
-    void sb.rpc("increment_article_views", { _slug: data.slug });
+    const { incrementArticleViews } = await import("./wiki-admin.server");
+    void incrementArticleViews(data.slug);
     return { article, revisions: revisions.data ?? [], related: related.data ?? [] };
   });
 
@@ -159,10 +160,8 @@ export const deleteComment = createServerFn({ method: "POST" })
       .maybeSingle();
     if (!comment) return { ok: false as const, error: "Комментарий не найден" };
 
-    const { data: isAdmin } = await context.supabase.rpc("has_role", {
-      _user_id: context.userId,
-      _role: "admin",
-    });
+    const { userHasRole } = await import("./wiki-admin.server");
+    const isAdmin = await userHasRole(context.userId, "admin");
     if (comment.author_id !== context.userId && !isAdmin) {
       return { ok: false as const, error: "Нельзя удалить чужой комментарий" };
     }
@@ -243,7 +242,8 @@ export const createEditSuggestion = createServerFn({ method: "POST" })
 export const listEditSuggestions = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
+    const { userHasRole } = await import("./wiki-admin.server");
+    const isAdmin = await userHasRole(context.userId, "admin");
     if (isAdmin) {
       const { data } = await context.supabase
         .from("edit_suggestions")
@@ -270,7 +270,8 @@ export const approveEditSuggestion = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: { suggestionId: string }) => data)
   .handler(async ({ data, context }) => {
-    const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
+    const { userHasRole } = await import("./wiki-admin.server");
+    const isAdmin = await userHasRole(context.userId, "admin");
     if (!isAdmin) return { ok: false as const, error: "Только администратор может принять правку" };
 
     const { data: suggestion } = await context.supabase
@@ -314,7 +315,8 @@ export const rejectEditSuggestion = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: { suggestionId: string; reason: string }) => data)
   .handler(async ({ data, context }) => {
-    const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
+    const { userHasRole } = await import("./wiki-admin.server");
+    const isAdmin = await userHasRole(context.userId, "admin");
     if (!isAdmin) return { ok: false as const, error: "Только администратор может отклонить правку" };
     const { error } = await context.supabase
       .from("edit_suggestions")
