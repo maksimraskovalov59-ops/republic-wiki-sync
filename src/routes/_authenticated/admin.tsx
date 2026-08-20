@@ -291,6 +291,75 @@ function AdminPage() {
           ) : null}
 
           <div className="surface-card p-5">
+            <h2 className="flex items-center gap-2 text-sm font-bold tracking-wide text-cyan uppercase">
+              <Users className="size-4" /> Участники и права
+            </h2>
+            <div className="mt-3 flex items-center gap-2">
+              <Search className="size-4 shrink-0 text-muted-foreground" />
+              <input
+                value={memberQuery}
+                onChange={(e) => setMemberQuery(e.target.value)}
+                placeholder="Поиск по нику"
+                className="min-w-0 flex-1 rounded-md border border-border bg-secondary px-3 py-1.5 text-sm outline-none focus:border-cyan"
+              />
+            </div>
+            {memberMsg && <p className="mt-2 text-xs text-muted-foreground">{memberMsg}</p>}
+            <ul className="mt-3 space-y-2">
+              {(members.data ?? []).map((m) => (
+                <li
+                  key={m.id}
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-secondary/40 px-4 py-2.5"
+                >
+                  <div className="flex min-w-0 items-center gap-3">
+                    {m.avatar_url ? (
+                      <img src={m.avatar_url} alt="" className="size-8 rounded-md object-cover" loading="lazy" />
+                    ) : (
+                      <div className="grid size-8 place-items-center rounded-md bg-secondary text-xs text-muted-foreground">
+                        {m.username.slice(0, 2).toUpperCase()}
+                      </div>
+                    )}
+                    <div className="min-w-0">
+                      <Link
+                        to="/user/$username"
+                        params={{ username: m.username }}
+                        className="block truncate text-sm font-semibold text-foreground hover:text-cyan"
+                      >
+                        {m.username}
+                      </Link>
+                      <p className="text-xs text-muted-foreground">
+                        репутация {m.reputation}
+                        {m.isCreator ? " · создатель" : m.isAdmin ? " · админ" : ""}
+                      </p>
+                    </div>
+                  </div>
+                  {m.isCreator ? (
+                    <span className="flex items-center gap-1.5 rounded-md border border-magenta/60 px-3 py-1.5 text-xs text-magenta">
+                      <ShieldCheck className="size-3.5" /> Права навсегда
+                    </span>
+                  ) : m.isAdmin ? (
+                    <button
+                      onClick={() => void toggleAdmin(m.id, false)}
+                      className="flex items-center gap-1.5 rounded-md border border-magenta/60 bg-secondary px-3 py-1.5 text-xs transition-shadow hover:glow-magenta"
+                    >
+                      <X className="size-3.5 text-magenta" /> Снять админку
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => void toggleAdmin(m.id, true)}
+                      className="flex items-center gap-1.5 rounded-md border border-cyan/60 bg-secondary px-3 py-1.5 text-xs transition-shadow hover:glow-cyan"
+                    >
+                      <ShieldCheck className="size-3.5 text-cyan" /> Выдать админку
+                    </button>
+                  )}
+                </li>
+              ))}
+            </ul>
+            {members.data?.length === 0 && (
+              <p className="mt-3 text-sm text-muted-foreground">Участники не найдены.</p>
+            )}
+          </div>
+
+          <div className="surface-card p-5">
             <h2 className="text-sm font-bold tracking-wide text-magenta uppercase">Опубликованные материалы</h2>
             <ul className="mt-3 space-y-2">
               {(published.data ?? []).map((a) => (
