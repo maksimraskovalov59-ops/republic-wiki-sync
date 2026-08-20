@@ -58,7 +58,13 @@ export const getArticle = createServerFn({ method: "GET" })
       .eq("slug", data.slug)
       .eq("status", "published")
       .maybeSingle();
-    if (!article) return { article: null, revisions: [], related: [] };
+    if (!article)
+      return { article: null, revisions: [], related: [], author: null } as {
+        article: null;
+        revisions: never[];
+        related: never[];
+        author: { username: string; reputation: number; avatar_url: string | null } | null;
+      };
     const [revisions, related] = await Promise.all([
       sb
         .from("article_revisions")
