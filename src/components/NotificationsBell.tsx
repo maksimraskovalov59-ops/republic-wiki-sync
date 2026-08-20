@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Bell, CheckCheck, Trash2 } from "lucide-react";
@@ -124,9 +123,9 @@ export function NotificationsBell({ enabled }: { enabled: boolean }) {
                 return (
                   <li key={n.id}>
                     {n.link ? (
-                      <Link to={n.link} onClick={() => setOpen(false)} className={cls}>
+                      <a href={n.link} onClick={() => setOpen(false)} className={cls}>
                         {inner}
-                      </Link>
+                      </a>
                     ) : (
                       <div className={cls}>{inner}</div>
                     )}
