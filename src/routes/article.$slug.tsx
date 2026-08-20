@@ -231,7 +231,7 @@ function ArticlePage() {
             ) : (
               <Link
                 to={user ? "/editor" : "/auth"}
-                search={user ? {} : undefined}
+                search={{}}
                 className="flex items-center gap-2 rounded-md border border-border bg-secondary px-3 py-2 text-sm transition-shadow hover:glow-cyan"
               >
                 <PencilLine className="size-4 shrink-0 text-cyan" />
