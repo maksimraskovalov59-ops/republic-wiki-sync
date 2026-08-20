@@ -5,7 +5,8 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { PixelField } from "@/components/PixelField";
 import { LowReputationNotice } from "@/components/LowReputationNotice";
 import { ReputationVote } from "@/components/ReputationVote";
-import { getPublicProfile, CREATOR_USERNAME } from "@/lib/wiki.functions";
+import { getPublicProfile } from "@/lib/wiki.functions";
+import { CREATOR_USERNAME } from "@/lib/wiki-constants";
 
 export const Route = createFileRoute("/user/$username")({
   head: ({ params }) => {
