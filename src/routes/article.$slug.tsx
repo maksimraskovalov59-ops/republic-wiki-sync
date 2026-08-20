@@ -362,6 +362,40 @@ function ArticlePage() {
         </article>
 
         <aside className="space-y-4">
+          {author && (
+            <section className="surface-card p-5">
+              <h2 className="text-sm font-bold tracking-wide text-cyan uppercase">Автор</h2>
+              <div className="mt-3 flex items-center gap-3">
+                {author.avatar_url ? (
+                  <img
+                    src={author.avatar_url}
+                    alt={`Аватар ${author.username}`}
+                    className="size-10 rounded-md object-cover"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className="grid size-10 place-items-center rounded-md bg-secondary text-xs text-muted-foreground">
+                    {author.username.slice(0, 2).toUpperCase()}
+                  </div>
+                )}
+                <Link
+                  to="/user/$username"
+                  params={{ username: author.username }}
+                  className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground hover:text-cyan"
+                >
+                  {author.username}
+                </Link>
+              </div>
+              <p className="mt-3 text-xs text-muted-foreground">Оцените вклад автора:</p>
+              <div className="mt-2">
+                <ReputationVote
+                  targetId={articleData.author_id!}
+                  reputation={author.reputation}
+                  targetName={author.username}
+                />
+              </div>
+            </section>
+          )}
           <section className="surface-card p-5">
             <h2 className="text-sm font-bold tracking-wide text-magenta uppercase">Похожие материалы</h2>
             {related.length === 0 ? (
