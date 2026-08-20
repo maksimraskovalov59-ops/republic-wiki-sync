@@ -14,16 +14,187 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      article_revisions: {
+        Row: {
+          article_id: string
+          created_at: string
+          editor_id: string | null
+          editor_name: string
+          id: string
+          note: string
+        }
+        Insert: {
+          article_id: string
+          created_at?: string
+          editor_id?: string | null
+          editor_name?: string
+          id?: string
+          note?: string
+        }
+        Update: {
+          article_id?: string
+          created_at?: string
+          editor_id?: string | null
+          editor_name?: string
+          id?: string
+          note?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "article_revisions_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "articles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      articles: {
+        Row: {
+          author_id: string | null
+          author_name: string
+          categories: string[]
+          content: string
+          cover_url: string | null
+          created_at: string
+          id: string
+          kind: Database["public"]["Enums"]["article_kind"]
+          reject_reason: string | null
+          slug: string
+          status: Database["public"]["Enums"]["article_status"]
+          summary: string
+          title: string
+          updated_at: string
+          views: number
+        }
+        Insert: {
+          author_id?: string | null
+          author_name?: string
+          categories?: string[]
+          content?: string
+          cover_url?: string | null
+          created_at?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["article_kind"]
+          reject_reason?: string | null
+          slug: string
+          status?: Database["public"]["Enums"]["article_status"]
+          summary?: string
+          title: string
+          updated_at?: string
+          views?: number
+        }
+        Update: {
+          author_id?: string | null
+          author_name?: string
+          categories?: string[]
+          content?: string
+          cover_url?: string | null
+          created_at?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["article_kind"]
+          reject_reason?: string | null
+          slug?: string
+          status?: Database["public"]["Enums"]["article_status"]
+          summary?: string
+          title?: string
+          updated_at?: string
+          views?: number
+        }
+        Relationships: []
+      }
+      comments: {
+        Row: {
+          article_id: string
+          author_id: string
+          author_name: string
+          body: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          article_id: string
+          author_id: string
+          author_name?: string
+          body: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          article_id?: string
+          author_id?: string
+          author_name?: string
+          body?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comments_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "articles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          id: string
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          id: string
+          username: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          username?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      increment_article_views: { Args: { _slug: string }; Returns: undefined }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "user"
+      article_kind: "article" | "news"
+      article_status: "draft" | "pending" | "published" | "rejected"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +321,10 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "user"],
+      article_kind: ["article", "news"],
+      article_status: ["draft", "pending", "published", "rejected"],
+    },
   },
 } as const
