@@ -1,418 +1,351 @@
-import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { useMemo, useState } from "react";
-import { Clock, Eye, MessageSquare, PencilLine, Send, Tag, Trash2, UserRound, X } from "lucide-react";
+import { Calendar, Edit3, MessageSquare, Tag, ThumbsUp, TrendingUp, User } from "lucide-react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { PixelField } from "@/components/PixelField";
-import { addComment, deleteComment, getArticle, getComments, createEditSuggestion } from "@/lib/wiki.functions";
+import { Markdown } from "@/components/Markdown";
 import { useAuth } from "@/hooks/useAuth";
-import { Markdown, extractHeadings } from "@/components/Markdown";
+import { supabase } from "@/integrations/supabase/client";
+import { getArticle, addComment, deleteComment, getComments, createEditSuggestion } from "@/lib/wiki.functions";
+import type { Article } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/article/$slug")({
-  loader: ({ params }) => getArticle({ data: { slug: params.slug } }),
-  head: ({ loaderData }) => {
-    const article = loaderData?.article;
-    if (!article) {
-      return {
-        meta: [
-          { title: "Статья не найдена — RepublicMC WIKI" },
-          { name: "robots", content: "noindex" },
-        ],
-      };
-    }
-    const title = `${article.title} — RepublicMC WIKI`;
-    const description = article.summary || `Статья «${article.title}» в энциклопедии RepublicMC.`;
-    const meta: { title: string }[] & ({ name: string; content: string } | { property: string; content: string })[] = [
-      { title },
-      { name: "description", content: description },
-      { property: "og:title", content: title },
-      { property: "og:description", content: description },
-      { property: "og:type", content: "article" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ];
-    if (article.cover_url?.startsWith("http")) {
-      meta.push({ property: "og:image", content: article.cover_url });
-      meta.push({ name: "twitter:image", content: article.cover_url });
-    }
-    return { meta };
+  head: ({ params }) => {
+    const title = `${params.slug} — RepublicMC WIKI`;
+    const description = `Статья вики RepublicMC: ${params.slug}.`;
+    return {
+      meta: [
+        { title },
+        { name: "description", content: description },
+        { property: "og:title", content: title },
+        { property: "og:description", content: description },
+        { property: "og:type", content: "article" },
+        { name: "twitter:card", content: "summary_large_image" },
+      ],
+    };
   },
   component: ArticlePage,
 });
 
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleString("ru-RU", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
 function ArticlePage() {
-  const { article, revisions, related } = Route.useLoaderData();
   const { slug } = Route.useParams();
   const { user, isAdmin } = useAuth();
-  const router = useRouter();
-  const send = useServerFn(addComment);
-  const loadComments = useServerFn(getComments);
-  const removeComment = useServerFn(deleteComment);
-  const suggest = useServerFn(createEditSuggestion);
+  const queryClient = useQueryClient();
+  const [commentBody, setCommentBody] = useState("");
+  const [suggesting, setSuggesting] = useState(false);
+  const [suggestionForm, setSuggestionForm] = useState({ title: "", summary: "", content: "", coverUrl: "", note: "" });
+  const [categories, setCategories] = useState<string[]>([]);
+  const doAddComment = useServerFn(addComment);
+  const doDeleteComment = useServerFn(deleteComment);
+  const doCreateSuggestion = useServerFn(createEditSuggestion);
 
-  const [comments, setComments] = useState<Awaited<ReturnType<typeof getComments>> | null>(null);
-  const [body, setBody] = useState("");
-  const [commentError, setCommentError] = useState<string | null>(null);
-  const [sending, setSending] = useState(false);
-  const [suggestOpen, setSuggestOpen] = useState(false);
-  const [suggestBody, setSuggestBody] = useState(article?.content ?? "");
-  const [suggestNote, setSuggestNote] = useState("");
-  const [suggestMsg, setSuggestMsg] = useState<string | null>(null);
+  const { data: payload } = useQuery({
+    queryKey: ["article", slug],
+    queryFn: () => getArticle({ data: { slug } }),
+    staleTime: 5 * 60 * 1000,
+  });
+  const article = payload?.article ?? null;
+  const revisions = payload?.revisions ?? [];
+  const related = payload?.related ?? [];
+
+  const { data: comments } = useQuery({
+    queryKey: ["comments", article?.id],
+    enabled: !!article?.id,
+    queryFn: () => getComments({ data: { articleId: article!.id } }),
+  });
+
+  async function handleComment() {
+    if (!user || !article) return;
+    const res = await doAddComment({ data: { articleId: article.id, body: commentBody } });
+    if (!res.ok) return alert(res.error);
+    setCommentBody("");
+    await queryClient.invalidateQueries({ queryKey: ["comments", article.id] });
+  }
+
+  async function handleDeleteComment(id: string) {
+    if (!article) return;
+    const res = await doDeleteComment({ data: { id } });
+    if (!res.ok) return alert(res.error);
+    await queryClient.invalidateQueries({ queryKey: ["comments", article.id] });
+  }
+
+  async function openSuggestion() {
+    if (!article) return;
+    setSuggestionForm({
+      title: article.title,
+      summary: article.summary,
+      content: article.content,
+      coverUrl: article.cover_url ?? "",
+      note: "",
+    });
+    setCategories(article.categories ?? []);
+    setSuggesting(true);
+  }
+
+  async function submitSuggestion() {
+    if (!article) return;
+    const res = await doCreateSuggestion({
+      data: {
+        articleId: article.id,
+        title: suggestionForm.title,
+        summary: suggestionForm.summary,
+        content: suggestionForm.content,
+        categories,
+        coverUrl: suggestionForm.coverUrl,
+        note: suggestionForm.note,
+      },
+    });
+    if (!res.ok) return alert(res.error);
+    setSuggesting(false);
+    alert("Предложение отправлено на модерацию");
+  }
 
   if (!article) {
     return (
       <div className="min-h-screen bg-background text-foreground">
         <PixelField />
         <SiteHeader />
-        <main className="mx-auto max-w-3xl px-4 py-24 text-center sm:px-6">
-          <h1 className="text-3xl font-extrabold">
-            <span className="text-brand-gradient">Статья не найдена</span>
-          </h1>
-          <p className="mt-3 text-sm text-muted-foreground">
-            Материала «{slug}» ещё нет или он на модерации.
-          </p>
-          <Link
-            to="/editor"
-            search={{}}
-            className="mt-6 inline-block rounded-lg px-5 py-3 text-sm font-semibold text-accent-foreground"
-            style={{ backgroundImage: "var(--gradient-brand)" }}
-          >
-            Написать эту статью
+        <main className="mx-auto max-w-4xl px-4 py-20 text-center">
+          <h1 className="text-2xl font-bold">Статья не найдена</h1>
+          <p className="mt-2 text-sm text-muted-foreground">Материал ещё не опубликован или был удалён.</p>
+          <Link to="/articles" className="mt-6 inline-block rounded-md bg-secondary px-4 py-2 text-sm">
+            Ко всем материалам
           </Link>
         </main>
       </div>
     );
   }
 
-  const headings = useMemo(() => extractHeadings(article.content), [article.content]);
-  const articleId = article.id;
-
-  async function refreshComments() {
-    const rows = await loadComments({ data: { articleId } });
-    setComments(rows);
-  }
-
-  async function submitComment(e: React.FormEvent) {
-    e.preventDefault();
-    setSending(true);
-    setCommentError(null);
-    const res = await send({ data: { articleId, body } });
-    setSending(false);
-    if (!res.ok) {
-      setCommentError(res.error);
-      return;
-    }
-    setBody("");
-    await refreshComments();
-  }
-
-  async function handleDeleteComment(id: string) {
-    if (!confirm("Удалить комментарий?")) return;
-    const res = await removeComment({ data: { id } });
-    if (!res.ok) {
-      setCommentError(res.error);
-      return;
-    }
-    setComments((prev) => prev?.filter((c) => c.id !== id) ?? []);
-  }
-
-  async function submitSuggestion(e: React.FormEvent) {
-    e.preventDefault();
-    setSuggestMsg(null);
-    const res = await suggest({
-      data: {
-        articleId,
-        title: article.title,
-        summary: article.summary,
-        content: suggestBody,
-        categories: article.categories,
-        coverUrl: article.cover_url,
-        note: suggestNote || "Правка",
-      },
-    });
-    if (!res.ok) {
-      setSuggestMsg(res.error);
-      return;
-    }
-    setSuggestMsg("Правка отправлена на рассмотрение администрации.");
-    setSuggestBody(article.content);
-    setSuggestNote("");
-    setTimeout(() => setSuggestOpen(false), 1500);
-  }
-
-
-  const canEdit = isAdmin || (!!user && user.id === article.author_id);
+  const articleData = article as Article;
 
   return (
     <div className="min-h-screen bg-background text-foreground">
       <PixelField />
       <SiteHeader />
 
-      <main className="mx-auto grid max-w-7xl gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[280px_minmax(0,1fr)]">
-        <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
-          {headings.length > 0 ? (
-            <nav className="surface-card p-4">
-              <h2 className="mb-3 text-sm font-bold tracking-wide text-cyan uppercase">Оглавление</h2>
-              <ol className="space-y-1 text-sm">
-                {headings.map((h, i) => (
-                  <li key={h.id}>
-                    <a
-                      href={`#${h.id}`}
-                      className="flex gap-2 rounded-md px-2 py-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-                    >
-                      <span className="text-magenta">{i + 1}.</span>
-                      <span className="min-w-0">{h.text}</span>
-                    </a>
-                  </li>
-                ))}
-              </ol>
-            </nav>
-          ) : null}
-
-          {article.categories.length > 0 ? (
-            <section className="surface-card p-4">
-              <h2 className="mb-3 flex items-center gap-2 text-sm font-bold tracking-wide text-magenta uppercase">
-                <Tag className="size-4 shrink-0" /> Категории
-              </h2>
-              <div className="flex flex-wrap gap-2">
-                {article.categories.map((c) => (
+      <main className="mx-auto grid max-w-7xl gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <article className="min-w-0">
+          <div className="surface-card overflow-hidden">
+            {articleData.cover_url && (
+              <div className="relative h-48 w-full sm:h-64">
+                <img
+                  src={articleData.cover_url}
+                  alt={articleData.title}
+                  className="h-full w-full object-cover"
+                  loading="eager"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-background/90 to-transparent" />
+              </div>
+            )}
+            <div className="p-5 sm:p-8">
+              <div className="mb-4 flex flex-wrap items-center gap-2">
+                {(articleData.categories ?? []).map((cat) => (
                   <Link
-                    key={c}
+                    key={cat}
                     to="/category/$name"
-                    params={{ name: c }}
-                    className="rounded-full border border-border bg-secondary px-3 py-1 text-xs text-muted-foreground transition-colors hover:border-cyan hover:text-foreground"
+                    params={{ name: cat }}
+                    className="rounded-full border border-cyan/40 px-3 py-1 text-xs text-cyan"
                   >
-                    {c}
+                    <Tag className="mr-1 inline size-3 align-[-2px]" />
+                    {cat}
                   </Link>
                 ))}
               </div>
-            </section>
-          ) : null}
 
-          <section className="surface-card p-4">
-            <h2 className="mb-3 flex items-center gap-2 text-sm font-bold tracking-wide text-cyan uppercase">
-              <Clock className="size-4 shrink-0" /> Последние изменения
-            </h2>
+              <h1 className="text-3xl font-extrabold leading-tight sm:text-4xl">
+                <span className="text-brand-gradient">{articleData.title}</span>
+              </h1>
+
+              <div className="mt-4 flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1">
+                  <User className="size-3.5" /> {articleData.author_name}
+                </span>
+                <span className="flex items-center gap-1">
+                  <Calendar className="size-3.5" /> {new Date(articleData.created_at).toLocaleDateString("ru-RU")}
+                </span>
+                <span className="flex items-center gap-1">
+                  <TrendingUp className="size-3.5" /> {articleData.views} просмотров
+                </span>
+              </div>
+
+              <div className="mt-6 text-sm leading-7 text-foreground">
+                <Markdown>{articleData.content}</Markdown>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              onClick={() => void openSuggestion()}
+              className="flex items-center gap-2 rounded-md border border-border bg-secondary px-4 py-2 text-sm transition-shadow hover:glow-cyan"
+            >
+              <Edit3 className="size-4 text-cyan" /> Предложить правку
+            </button>
+            {isAdmin && (
+              <Link
+                to="/editor"
+                search={{ id: articleData.id }}
+                className="flex items-center gap-2 rounded-md border border-cyan/60 bg-secondary px-4 py-2 text-sm transition-shadow hover:glow-cyan"
+              >
+                <Edit3 className="size-4 text-cyan" /> Редактировать
+              </Link>
+            )}
+          </div>
+
+          {suggesting && (
+            <div className="mt-4 surface-card p-5">
+              <h3 className="text-lg font-bold">Предложить правку</h3>
+              <div className="mt-3 space-y-3">
+                <input
+                  value={suggestionForm.title}
+                  onChange={(e) => setSuggestionForm((f) => ({ ...f, title: e.target.value }))}
+                  className="w-full rounded-md border border-border bg-secondary px-3 py-2 text-sm"
+                  placeholder="Название"
+                />
+                <input
+                  value={suggestionForm.summary}
+                  onChange={(e) => setSuggestionForm((f) => ({ ...f, summary: e.target.value }))}
+                  className="w-full rounded-md border border-border bg-secondary px-3 py-2 text-sm"
+                  placeholder="Краткое описание"
+                />
+                <textarea
+                  value={suggestionForm.content}
+                  onChange={(e) => setSuggestionForm((f) => ({ ...f, content: e.target.value }))}
+                  className="min-h-[180px] w-full rounded-md border border-border bg-secondary px-3 py-2 text-sm"
+                  placeholder="Markdown-контент"
+                />
+                <input
+                  value={suggestionForm.coverUrl}
+                  onChange={(e) => setSuggestionForm((f) => ({ ...f, coverUrl: e.target.value }))}
+                  className="w-full rounded-md border border-border bg-secondary px-3 py-2 text-sm"
+                  placeholder="URL обложки"
+                />
+                <input
+                  value={categories.join(", ")}
+                  onChange={(e) => setCategories(e.target.value.split(",").map((c) => c.trim()).filter(Boolean))}
+                  className="w-full rounded-md border border-border bg-secondary px-3 py-2 text-sm"
+                  placeholder="Категории через запятую"
+                />
+                <input
+                  value={suggestionForm.note}
+                  onChange={(e) => setSuggestionForm((f) => ({ ...f, note: e.target.value }))}
+                  className="w-full rounded-md border border-border bg-secondary px-3 py-2 text-sm"
+                  placeholder="Комментарий к правке"
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => void submitSuggestion()}
+                    className="rounded-md bg-cyan px-4 py-2 text-sm font-semibold text-white"
+                  >
+                    Отправить
+                  </button>
+                  <button
+                    onClick={() => setSuggesting(false)}
+                    className="rounded-md border border-border bg-secondary px-4 py-2 text-sm"
+                  >
+                    Отмена
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="mt-6 surface-card p-5">
+            <h2 className="text-sm font-bold tracking-wide text-cyan uppercase">История изменений</h2>
             {revisions.length === 0 ? (
-              <p className="text-xs text-muted-foreground">Правок пока не было.</p>
+              <p className="mt-2 text-sm text-muted-foreground">Пока нет изменений.</p>
             ) : (
-              <ul className="space-y-3">
+              <ul className="mt-3 space-y-2">
                 {revisions.map((r) => (
-                  <li key={r.created_at} className="border-l border-border pl-3">
-                    <p className="text-xs text-muted-foreground">{formatDate(r.created_at)}</p>
-                    <p className="text-sm text-foreground">{r.note}</p>
-                    <p className="text-xs text-magenta">{r.editor_name}</p>
+                  <li key={r.created_at} className="text-sm text-muted-foreground">
+                    <span className="font-semibold text-foreground">{r.editor_name}</span> · {r.note} ·{" "}
+                    {new Date(r.created_at).toLocaleDateString("ru-RU")}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          <div className="mt-6 surface-card p-5">
+            <h2 className="flex items-center gap-2 text-sm font-bold tracking-wide text-cyan uppercase">
+              <MessageSquare className="size-4" /> Комментарии
+            </h2>
+            {user ? (
+              <div className="mt-3">
+                <textarea
+                  value={commentBody}
+                  onChange={(e) => setCommentBody(e.target.value)}
+                  placeholder="Напишите комментарий..."
+                  className="min-h-[80px] w-full rounded-md border border-border bg-secondary px-3 py-2 text-sm"
+                />
+                <button
+                  onClick={() => void handleComment()}
+                  className="mt-2 rounded-md bg-cyan px-4 py-2 text-sm font-semibold text-white"
+                >
+                  Отправить
+                </button>
+              </div>
+            ) : (
+              <p className="mt-2 text-sm text-muted-foreground">
+                <Link to="/auth" className="text-cyan underline">
+                  Войдите
+                </Link>
+                , чтобы оставить комментарий.
+              </p>
+            )}
+            <ul className="mt-4 space-y-3">
+              {(comments ?? []).map((c) => (
+                <li key={c.id} className="rounded-md border border-border bg-secondary/40 p-3">
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span className="font-semibold text-foreground">{c.author_name}</span>
+                    <span>{new Date(c.created_at).toLocaleDateString("ru-RU")}</span>
+                  </div>
+                  <p className="mt-1 text-sm whitespace-pre-wrap">{c.body}</p>
+                  {(c.author_id === user?.id || isAdmin) && (
+                    <button
+                      onClick={() => void handleDeleteComment(c.id)}
+                      className="mt-2 text-xs text-magenta"
+                    >
+                      Удалить
+                    </button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </article>
+
+        <aside className="space-y-4">
+          <section className="surface-card p-5">
+            <h2 className="text-sm font-bold tracking-wide text-magenta uppercase">Похожие материалы</h2>
+            {related.length === 0 ? (
+              <p className="mt-2 text-sm text-muted-foreground">Нет похожих материалов.</p>
+            ) : (
+              <ul className="mt-3 space-y-2">
+                {related.map((r) => (
+                  <li key={r.slug}>
+                    <Link
+                      to="/article/$slug"
+                      params={{ slug: r.slug }}
+                      className="group flex items-center gap-3 text-sm"
+                    >
+                      {r.cover_url ? (
+                        <img src={r.cover_url} alt="" className="size-10 rounded-md object-cover" />
+                      ) : (
+                        <div className="grid size-10 place-items-center rounded-md bg-secondary text-muted-foreground">
+                          <ThumbsUp className="size-4" />
+                        </div>
+                      )}
+                      <span className="group-hover:text-cyan">{r.title}</span>
+                    </Link>
                   </li>
                 ))}
               </ul>
             )}
           </section>
         </aside>
-
-        <article className="surface-card min-w-0 p-5 sm:p-8">
-          <p className="text-xs tracking-widest text-muted-foreground uppercase">
-            {article.kind === "news" ? "Новость" : article.categories[0] ?? "Статья"}
-          </p>
-          <h1 className="mt-2 text-3xl font-extrabold sm:text-5xl">
-            <span className="text-brand-gradient">{article.title}</span>
-          </h1>
-          {article.summary ? (
-            <p className="mt-3 text-sm text-muted-foreground sm:text-base">{article.summary}</p>
-          ) : null}
-
-          <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
-            <span className="flex items-center gap-1.5">
-              <Clock className="size-3.5 shrink-0" /> Изменено {formatDate(article.updated_at)}
-            </span>
-            <span className="flex items-center gap-1.5">
-              <UserRound className="size-3.5 shrink-0" /> {article.author_name}
-            </span>
-            <span className="flex items-center gap-1.5">
-              <Eye className="size-3.5 shrink-0" /> {article.views} просмотров
-            </span>
-          </div>
-
-          <div className="mt-5 flex flex-wrap gap-2 border-y border-border py-4">
-            {canEdit ? (
-              <Link
-                to="/editor"
-                search={{ id: article.id }}
-                className="flex items-center gap-2 rounded-md border border-border bg-secondary px-3 py-2 text-sm transition-shadow hover:glow-cyan"
-              >
-                <PencilLine className="size-4 shrink-0 text-cyan" /> Редактировать
-              </Link>
-            ) : (
-              <>
-                <button
-                  type="button"
-                  onClick={() => setSuggestOpen((v) => !v)}
-                  className="flex items-center gap-2 rounded-md border border-border bg-secondary px-3 py-2 text-sm transition-shadow hover:glow-cyan"
-                >
-                  <PencilLine className="size-4 shrink-0 text-cyan" /> Предложить правку
-                </button>
-                <Link
-                  to={user ? "/editor" : "/auth"}
-                  search={{}}
-                  className="flex items-center gap-2 rounded-md border border-border bg-secondary px-3 py-2 text-sm transition-shadow hover:glow-cyan"
-                >
-                  <PencilLine className="size-4 shrink-0 text-cyan" />
-                  {user ? "Новая статья" : "Войдите, чтобы писать"}
-                </Link>
-              </>
-            )}
-            <a
-              href="#comments"
-              onClick={() => void refreshComments()}
-              className="flex items-center gap-2 rounded-md border border-border bg-secondary px-3 py-2 text-sm transition-shadow hover:glow-magenta"
-            >
-              <MessageSquare className="size-4 shrink-0 text-magenta" /> Обсуждение
-            </a>
-          </div>
-
-          {article.cover_url ? (
-            <img
-              src={article.cover_url}
-              alt={article.title}
-              className="mt-8 w-full rounded-lg border border-border object-cover"
-            />
-          ) : null}
-
-          <div className="mt-8">
-            <Markdown>{article.content}</Markdown>
-          </div>
-
-          {suggestOpen ? (
-            <form onSubmit={submitSuggestion} className="surface-card mt-8 border border-cyan/40 p-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-cyan">Предложить правку</h3>
-                <button type="button" onClick={() => setSuggestOpen(false)} className="text-muted-foreground">
-                  <X className="size-4" />
-                </button>
-              </div>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Отправьте предложенный вариант текста. Администрация сможет сравнить изменения и принять или отклонить правку.
-              </p>
-              <textarea
-                value={suggestBody}
-                onChange={(e) => setSuggestBody(e.target.value)}
-                rows={10}
-                className="mt-3 w-full rounded-lg border border-border bg-secondary px-3 py-2 text-sm font-mono outline-none focus:border-cyan"
-              />
-              <input
-                value={suggestNote}
-                onChange={(e) => setSuggestNote(e.target.value)}
-                placeholder="Кратко: что изменилось?"
-                className="mt-2 w-full rounded-lg border border-border bg-secondary px-3 py-2 text-sm outline-none focus:border-cyan"
-              />
-              {suggestMsg && <p className="mt-2 text-sm text-cyan">{suggestMsg}</p>}
-              <button
-                type="submit"
-                disabled={!suggestBody.trim()}
-                className="glow-cyan mt-3 inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-accent-foreground disabled:opacity-50"
-                style={{ backgroundImage: "var(--gradient-brand)" }}
-              >
-                <Send className="size-4" /> Отправить правку
-              </button>
-            </form>
-          ) : null}
-
-          {related.length > 0 ? (
-            <section className="mt-10 border-t border-border pt-6">
-              <h2 className="text-lg font-bold text-foreground">См. также</h2>
-              <ul className="mt-3 grid gap-2 sm:grid-cols-2">
-                {related.map((l) => (
-                  <li key={l.slug}>
-                    <Link
-                      to="/article/$slug"
-                      params={{ slug: l.slug }}
-                      className="block rounded-lg border border-border bg-secondary/50 px-4 py-3 text-sm text-muted-foreground transition-colors hover:border-cyan hover:text-foreground"
-                    >
-                      {l.title}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ) : null}
-
-          <section id="comments" className="mt-10 scroll-mt-24 border-t border-border pt-6">
-            <div className="flex items-center justify-between gap-3">
-              <h2 className="text-lg font-bold text-foreground">Обсуждение</h2>
-              <button
-                type="button"
-                onClick={() => void refreshComments()}
-                className="text-xs text-cyan hover:underline"
-              >
-                {comments === null ? "Показать комментарии" : "Обновить"}
-              </button>
-            </div>
-
-            {user ? (
-              <form onSubmit={submitComment} className="mt-4 space-y-2">
-                <textarea
-                  value={body}
-                  onChange={(e) => setBody(e.target.value)}
-                  rows={3}
-                  maxLength={2000}
-                  placeholder="Поделитесь мнением или предложите правку…"
-                  className="w-full rounded-lg border border-border bg-secondary/50 px-3 py-2 text-sm outline-none focus:border-cyan"
-                />
-                {commentError ? <p className="text-xs text-destructive">{commentError}</p> : null}
-                <button
-                  type="submit"
-                  disabled={sending || !body.trim()}
-                  className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-accent-foreground disabled:opacity-50"
-                  style={{ backgroundImage: "var(--gradient-brand)" }}
-                >
-                  <Send className="size-4 shrink-0" /> {sending ? "Отправка…" : "Отправить"}
-                </button>
-              </form>
-            ) : (
-              <p className="mt-4 text-sm text-muted-foreground">
-                <Link to="/auth" className="text-cyan hover:underline">
-                  Войдите
-                </Link>{" "}
-                чтобы комментировать, писать и редактировать статьи.
-              </p>
-            )}
-
-            <ul className="mt-6 space-y-3">
-              {(comments ?? []).map((c) => (
-                <li key={c.id} className="rounded-lg border border-border bg-secondary/40 p-3">
-                  <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
-                    <span className="text-magenta">{c.author_name}</span>
-                    <div className="flex items-center gap-2">
-                      <span>{formatDate(c.created_at)}</span>
-                      {(isAdmin || c.author_id === user?.id) && (
-                        <button
-                          type="button"
-                          onClick={() => void handleDeleteComment(c.id)}
-                          className="text-destructive hover:text-foreground"
-                          aria-label="Удалить комментарий"
-                        >
-                          <Trash2 className="size-3.5" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                  <p className="mt-2 text-sm whitespace-pre-wrap text-foreground">{c.body}</p>
-                </li>
-              ))}
-              {comments !== null && comments.length === 0 ? (
-                <li className="text-sm text-muted-foreground">Комментариев пока нет.</li>
-              ) : null}
-            </ul>
-          </section>
-        </article>
       </main>
     </div>
   );
