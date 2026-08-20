@@ -153,7 +153,7 @@ function ArticlePage() {
       <PixelField />
       <SiteHeader />
 
-      <main className="mx-auto grid max-w-7xl 2xl:max-w-[1600px] min-[1900px]:max-w-[1800px] gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <main className="mx-auto grid max-w-7xl 2xl:max-w-[1600px] min-[1900px]:max-w-[1800px] gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[minmax(0,1fr)_320px] 2xl:grid-cols-[minmax(0,1fr)_380px]">
         <article className="min-w-0">
           <div className="surface-card overflow-hidden">
             {articleData.cover_url && (
