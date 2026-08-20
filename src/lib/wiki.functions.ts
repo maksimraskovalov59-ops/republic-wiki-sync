@@ -385,7 +385,7 @@ export const listMembers = createServerFn({ method: "GET" })
 
     let query = context.supabase
       .from("profiles")
-      .select("id,username,avatar_url,reputation,created_at")
+      .select("id,username,avatar_url,reputation,created_at,muted_until,banned_until,block_reason")
       .order("created_at", { ascending: true })
       .limit(50);
     const q = (data.q ?? "").trim().replace(/[%_]/g, "\\$&");
@@ -410,6 +410,9 @@ export const listMembers = createServerFn({ method: "GET" })
       created_at: r.created_at,
       isAdmin: admins.has(r.id),
       isCreator: r.username.toLowerCase() === CREATOR_USERNAME.toLowerCase(),
+      mutedUntil: r.muted_until,
+      bannedUntil: r.banned_until,
+      blockReason: r.block_reason,
     }));
   });
 
