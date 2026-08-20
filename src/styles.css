@@ -213,10 +213,10 @@
 @keyframes cube-fade {
   0%,
   100% {
-    opacity: 0.25;
+    opacity: 0.4;
   }
   50% {
-    opacity: 0.8;
+    opacity: 0.95;
   }
 }
 
