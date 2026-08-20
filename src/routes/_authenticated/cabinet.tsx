@@ -2,12 +2,23 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { LogOut, Palette, PencilLine, Plus, ShieldCheck, Sparkles } from "lucide-react";
+import {
+  ExternalLink,
+  LogOut,
+  Palette,
+  PencilLine,
+  Plus,
+  Save,
+  ShieldCheck,
+  Sparkles,
+  UserCog,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { claimAdmin } from "@/lib/wiki.functions";
+import { claimAdmin, getPublicProfile } from "@/lib/wiki.functions";
 import { SiteHeader } from "@/components/SiteHeader";
 import { PixelField } from "@/components/PixelField";
+import { LowReputationNotice } from "@/components/LowReputationNotice";
 import { useTheme } from "@/hooks/useTheme";
 import { ThemePicker } from "@/components/ThemePicker";
 
@@ -45,6 +56,57 @@ function Cabinet() {
   const [password, setPassword] = useState("");
   const [claimMsg, setClaimMsg] = useState<string | null>(null);
   const { theme, setTheme } = useTheme(!!user);
+  const [profileForm, setProfileForm] = useState<{ bio: string; link: string; avatar_url: string } | null>(null);
+  const [profileMsg, setProfileMsg] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  const profile = useQuery({
+    queryKey: ["my-profile", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("id,username,bio,link,avatar_url,reputation,created_at")
+        .eq("id", user!.id)
+        .maybeSingle();
+      return data ?? null;
+    },
+  });
+
+  const stats = useQuery({
+    queryKey: ["my-stats", username],
+    enabled: !!username,
+    queryFn: () => getPublicProfile({ data: { username: username! } }),
+  });
+
+  const form =
+    profileForm ?? {
+      bio: profile.data?.bio ?? "",
+      link: profile.data?.link ?? "",
+      avatar_url: profile.data?.avatar_url ?? "",
+    };
+
+  async function saveProfile(e: React.FormEvent) {
+    e.preventDefault();
+    if (!user) return;
+    setSaving(true);
+    setProfileMsg(null);
+    const { error } = await supabase
+      .from("profiles")
+      .update({
+        bio: form.bio.slice(0, 500),
+        link: form.link.trim() || null,
+        avatar_url: form.avatar_url.trim() || null,
+      })
+      .eq("id", user.id);
+    setSaving(false);
+    if (error) {
+      setProfileMsg("Не удалось сохранить профиль");
+      return;
+    }
+    setProfileMsg("Профиль сохранён");
+    await queryClient.invalidateQueries({ queryKey: ["my-profile", user.id] });
+  }
 
   const mine = useQuery({
     queryKey: ["my-articles", user?.id],
@@ -93,7 +155,17 @@ function Cabinet() {
               </h1>
               <p className="mt-1 text-sm text-muted-foreground">
                 {isAdmin ? "Роль: администратор" : "Роль: участник"}
+                {profile.data ? ` · репутация ${profile.data.reputation}` : ""}
               </p>
+              {username && (
+                <Link
+                  to="/user/$username"
+                  params={{ username }}
+                  className="mt-1 inline-flex items-center gap-1 text-xs text-cyan hover:underline"
+                >
+                  <ExternalLink className="size-3" /> Открыть публичный профиль
+                </Link>
+              )}
             </div>
             <div className="flex flex-wrap gap-2">
               <Link
