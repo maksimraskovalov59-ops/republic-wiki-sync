@@ -48,7 +48,7 @@ function CategoryPage() {
     <div className="min-h-screen bg-background text-foreground">
       <PixelField />
       <SiteHeader />
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
+      <main className="mx-auto max-w-7xl 2xl:max-w-[1600px] min-[1900px]:max-w-[1800px] px-4 py-8 sm:px-6">
         <div className="surface-card mb-6 p-5 sm:p-8">
           <h1 className="text-2xl font-extrabold sm:text-4xl">
             <span className="text-brand-gradient">{name}</span>

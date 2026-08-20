@@ -41,7 +41,7 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-xl">
-      <div className="mx-auto grid max-w-7xl grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-3 py-3 sm:flex sm:justify-between sm:gap-4 sm:px-6">
+      <div className="mx-auto grid max-w-7xl 2xl:max-w-[1600px] min-[1900px]:max-w-[1800px] grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-3 py-3 sm:flex sm:justify-between sm:gap-4 sm:px-6">
         <Link to="/" className="flex min-w-0 items-center gap-1.5 sm:gap-2">
           <BookOpenText className="size-5 shrink-0 text-cyan" />
           <span className="truncate font-display text-sm font-extrabold tracking-tight sm:text-lg">

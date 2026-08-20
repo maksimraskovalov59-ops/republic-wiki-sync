@@ -46,7 +46,7 @@ function SearchPage() {
     <div className="min-h-screen bg-background text-foreground">
       <PixelField />
       <SiteHeader />
-      <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
+      <main className="mx-auto max-w-3xl px-4 xl:max-w-5xl py-8 sm:px-6">
         <h1 className="text-2xl font-extrabold sm:text-4xl">
           <span className="text-brand-gradient">Поиск</span>
         </h1>
