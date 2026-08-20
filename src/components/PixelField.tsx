@@ -1,3 +1,13 @@
+type Cube = {
+  top: string;
+  left: string;
+  color: string;
+  size: number;
+  duration: string;
+  delay: string;
+  rounded?: boolean;
+};
+
 const PIXELS = [
   { top: "8%", left: "12%", color: "var(--cyan)", size: 4, delay: "0s" },
   { top: "18%", left: "27%", color: "var(--magenta)", size: 5, delay: "0.6s" },
@@ -13,6 +23,19 @@ const PIXELS = [
   { top: "86%", left: "80%", color: "var(--violet)", size: 5, delay: "0.4s" },
   { top: "92%", left: "44%", color: "var(--magenta)", size: 3, delay: "1.3s" },
   { top: "37%", left: "50%", color: "var(--blue)", size: 3, delay: "2s" },
+];
+
+const CUBES: Cube[] = [
+  { top: "14%", left: "8%", color: "var(--cyan)", size: 18, duration: "22s", delay: "0s" },
+  { top: "24%", left: "78%", color: "var(--magenta)", size: 12, duration: "18s", delay: "1.5s" },
+  { top: "38%", left: "16%", color: "var(--violet)", size: 24, duration: "26s", delay: "3s" },
+  { top: "46%", left: "88%", color: "var(--blue)", size: 14, duration: "20s", delay: "2s" },
+  { top: "58%", left: "34%", color: "var(--cyan)", size: 10, duration: "16s", delay: "0.8s" },
+  { top: "64%", left: "68%", color: "var(--magenta)", size: 20, duration: "24s", delay: "4s" },
+  { top: "78%", left: "12%", color: "var(--blue)", size: 16, duration: "19s", delay: "2.6s" },
+  { top: "84%", left: "56%", color: "var(--violet)", size: 12, duration: "23s", delay: "1.2s" },
+  { top: "90%", left: "84%", color: "var(--cyan)", size: 22, duration: "27s", delay: "3.4s" },
+  { top: "70%", left: "46%", color: "var(--magenta)", size: 8, duration: "15s", delay: "5s" },
 ];
 
 export function PixelField() {
@@ -38,6 +61,23 @@ export function PixelField() {
             boxShadow: `0 0 12px ${p.color}`,
             animationDelay: p.delay,
             animationDuration: "3.5s",
+          }}
+        />
+      ))}
+      {CUBES.map((c, i) => (
+        <span
+          key={`cube-${i}`}
+          className="cube-float absolute rounded-[3px] border"
+          style={{
+            top: c.top,
+            left: c.left,
+            width: c.size,
+            height: c.size,
+            borderColor: `color-mix(in oklab, ${c.color} 70%, transparent)`,
+            backgroundColor: `color-mix(in oklab, ${c.color} 16%, transparent)`,
+            boxShadow: `0 0 18px color-mix(in oklab, ${c.color} 35%, transparent)`,
+            ["--cube-duration" as string]: c.duration,
+            ["--cube-delay" as string]: c.delay,
           }}
         />
       ))}
