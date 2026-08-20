@@ -75,7 +75,19 @@ export const getArticle = createServerFn({ method: "GET" })
     ]);
     const { incrementArticleViews } = await import("./wiki-admin.server");
     void incrementArticleViews(data.slug);
-    return { article, revisions: revisions.data ?? [], related: related.data ?? [] };
+    const { data: author } = article.author_id
+      ? await sb
+          .from("profiles")
+          .select("username,reputation,avatar_url")
+          .eq("id", article.author_id)
+          .maybeSingle()
+      : { data: null };
+    return {
+      article,
+      revisions: revisions.data ?? [],
+      related: related.data ?? [],
+      author: author ?? null,
+    };
   });
 
 export const searchArticles = createServerFn({ method: "GET" })
@@ -455,7 +467,7 @@ export const getPublicProfile = createServerFn({ method: "GET" })
       .maybeSingle();
     if (!profile) return null;
 
-    const [articles, revisions, comments, roleRow] = await Promise.all([
+    const [articles, revisions, comments] = await Promise.all([
       sb
         .from("articles")
         .select("slug,title,summary,kind,views,updated_at")
@@ -475,9 +487,7 @@ export const getPublicProfile = createServerFn({ method: "GET" })
         .eq("author_id", profile.id)
         .order("created_at", { ascending: false })
         .limit(20),
-      sb.from("articles").select("id").eq("author_id", profile.id).limit(1),
     ]);
-    void roleRow;
 
     const arts = articles.data ?? [];
     const revs = revisions.data ?? [];
