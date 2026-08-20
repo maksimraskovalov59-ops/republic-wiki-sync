@@ -111,7 +111,7 @@ function ArticlesPage() {
             По выбранному фильтру пока ничего нет. Попробуйте другую категорию или напишите первую статью.
           </p>
         ) : (
-          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
             {(articles ?? []).map((a) => (
               <li key={a.slug}>
                 <Link

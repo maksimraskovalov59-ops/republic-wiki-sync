@@ -66,7 +66,7 @@ function CategoryPage() {
             В этой категории пока нет материалов.
           </p>
         ) : (
-          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
             {articles.map((a) => (
               <li key={a.slug}>
                 <Link
