@@ -2,7 +2,18 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Check, Eye, GitPullRequest, Newspaper, PencilLine, ShieldAlert, X } from "lucide-react";
+import {
+  Check,
+  Eye,
+  GitPullRequest,
+  Newspaper,
+  PencilLine,
+  Search,
+  ShieldAlert,
+  ShieldCheck,
+  Users,
+  X,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -13,6 +24,9 @@ import {
   approveEditSuggestion,
   rejectEditSuggestion,
   EditSuggestion,
+  listMembers,
+  setUserAdmin,
+  MemberRow,
 } from "@/lib/wiki.functions";
 
 export const Route = createFileRoute("/_authenticated/admin")({
@@ -42,6 +56,26 @@ function AdminPage() {
   const [viewing, setViewing] = useState<string | null>(null);
   const doApprove = useServerFn(approveEditSuggestion);
   const doReject = useServerFn(rejectEditSuggestion);
+  const doSetAdmin = useServerFn(setUserAdmin);
+  const [memberQuery, setMemberQuery] = useState("");
+  const [memberMsg, setMemberMsg] = useState<string | null>(null);
+
+  const members = useQuery<MemberRow[]>({
+    queryKey: ["admin-members", memberQuery],
+    enabled: isAdmin,
+    queryFn: () => listMembers({ data: { q: memberQuery.trim() || undefined } }),
+  });
+
+  async function toggleAdmin(userId: string, makeAdmin: boolean) {
+    setMemberMsg(null);
+    const res = await doSetAdmin({ data: { userId, makeAdmin } });
+    if (!res.ok) {
+      setMemberMsg(res.error);
+      return;
+    }
+    setMemberMsg(makeAdmin ? "Права администратора выданы" : "Права администратора сняты");
+    await queryClient.invalidateQueries({ queryKey: ["admin-members"] });
+  }
 
   const pending = useQuery({
     queryKey: ["admin-pending"],
