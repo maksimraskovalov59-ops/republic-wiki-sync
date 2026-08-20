@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { slugify } from "@/lib/slug";
 import { SiteHeader } from "@/components/SiteHeader";
 import { PixelField } from "@/components/PixelField";
+import { ModerationBanner } from "@/components/ModerationBanner";
 import { Markdown } from "@/components/Markdown";
 
 export const Route = createFileRoute("/_authenticated/editor")({
@@ -156,7 +157,11 @@ function Editor() {
       <PixelField />
       <SiteHeader />
       <main className="mx-auto max-w-5xl px-4 2xl:max-w-6xl py-8 sm:px-6">
+        <div className="mb-4">
+          <ModerationBanner enabled />
+        </div>
         <h1 className="text-3xl font-extrabold sm:text-4xl">
+
           <span className="text-brand-gradient">
             {id ? "Редактирование" : isNews ? "Новая новость" : "Новая статья"}
           </span>

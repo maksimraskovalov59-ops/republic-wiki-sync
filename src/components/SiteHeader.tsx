@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useRef, useState } from "react";
 import { useTheme } from "@/hooks/useTheme";
 import { ThemePicker } from "@/components/ThemePicker";
+import { NotificationsBell } from "@/components/NotificationsBell";
 
 const NAV = [
   { label: "Все статьи", to: "/articles" },
@@ -81,6 +82,7 @@ export function SiteHeader() {
               <ShieldCheck className="size-4 shrink-0" /> Админка
             </Link>
           ) : null}
+          <NotificationsBell enabled={!!user} />
           <div className="relative" ref={themeRef}>
             <button
               type="button"

@@ -370,6 +370,10 @@ export type MemberRow = {
   created_at: string;
   isAdmin: boolean;
   isCreator: boolean;
+  mutedUntil: string | null;
+  bannedUntil: string | null;
+  blockReason: string | null;
+
 };
 
 export const listMembers = createServerFn({ method: "GET" })
@@ -381,7 +385,7 @@ export const listMembers = createServerFn({ method: "GET" })
 
     let query = context.supabase
       .from("profiles")
-      .select("id,username,avatar_url,reputation,created_at")
+      .select("id,username,avatar_url,reputation,created_at,muted_until,banned_until,block_reason")
       .order("created_at", { ascending: true })
       .limit(50);
     const q = (data.q ?? "").trim().replace(/[%_]/g, "\\$&");
@@ -406,6 +410,9 @@ export const listMembers = createServerFn({ method: "GET" })
       created_at: r.created_at,
       isAdmin: admins.has(r.id),
       isCreator: r.username.toLowerCase() === CREATOR_USERNAME.toLowerCase(),
+      mutedUntil: r.muted_until,
+      bannedUntil: r.banned_until,
+      blockReason: r.block_reason,
     }));
   });
 
@@ -568,3 +575,259 @@ export type EditSuggestion = {
   created_at: string;
   articles: SuggestionArticle | null;
 };
+
+/* ------------------------------------------------------------------ */
+/* Уведомления                                                         */
+/* ------------------------------------------------------------------ */
+
+export type NotificationRow = {
+  id: string;
+  kind: string;
+  title: string;
+  body: string;
+  link: string | null;
+  read_at: string | null;
+  created_at: string;
+};
+
+export const listNotifications = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<NotificationRow[]> => {
+    const { data } = await context.supabase
+      .from("notifications")
+      .select("id,kind,title,body,link,read_at,created_at")
+      .eq("user_id", context.userId)
+      .order("created_at", { ascending: false })
+      .limit(50);
+    return data ?? [];
+  });
+
+export const markNotificationsRead = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { ids?: string[] | undefined }) => data)
+  .handler(async ({ data, context }) => {
+    let q = context.supabase
+      .from("notifications")
+      .update({ read_at: new Date().toISOString() })
+      .eq("user_id", context.userId)
+      .is("read_at", null);
+    if (data.ids?.length) q = q.in("id", data.ids);
+    const { error } = await q;
+    if (error) return { ok: false as const, error: "Не удалось отметить уведомления" };
+    return { ok: true as const };
+  });
+
+export const clearNotifications = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { error } = await context.supabase.from("notifications").delete().eq("user_id", context.userId);
+    if (error) return { ok: false as const, error: "Не удалось очистить уведомления" };
+    return { ok: true as const };
+  });
+
+/* ------------------------------------------------------------------ */
+/* Модерация участников                                                */
+/* ------------------------------------------------------------------ */
+
+export type BlockState = {
+  muted: boolean;
+  banned: boolean;
+  reason: string | null;
+  mutedUntil: string | null;
+  bannedUntil: string | null;
+};
+
+export const getMyModeration = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<BlockState> => {
+    const { getBlockState } = await import("./wiki-admin.server");
+    return getBlockState(context.userId);
+  });
+
+export const setUserBlock = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    (data: { userId: string; mode: "mute" | "ban" | "clear"; hours?: number | null; reason?: string | undefined }) =>
+      data,
+  )
+  .handler(async ({ data, context }) => {
+    const { userHasRole, logAdminAction, notifyUser } = await import("./wiki-admin.server");
+    if (!(await userHasRole(context.userId, "admin"))) {
+      return { ok: false as const, error: "Только администратор может блокировать участников" };
+    }
+    if (data.userId === context.userId) {
+      return { ok: false as const, error: "Нельзя заблокировать самого себя" };
+    }
+    const { data: target } = await context.supabase
+      .from("profiles")
+      .select("username")
+      .eq("id", data.userId)
+      .maybeSingle();
+    if (!target) return { ok: false as const, error: "Участник не найден" };
+    if (target.username.toLowerCase() === CREATOR_USERNAME.toLowerCase()) {
+      return { ok: false as const, error: "Создателя нельзя заблокировать" };
+    }
+    if (data.mode !== "clear" && (await userHasRole(data.userId, "admin"))) {
+      return { ok: false as const, error: "Сначала снимите права администратора" };
+    }
+
+    const reason = (data.reason ?? "").trim().slice(0, 300);
+    const hours = data.hours && data.hours > 0 ? Math.min(data.hours, 24 * 365) : null;
+    const until = hours ? new Date(Date.now() + hours * 3600_000).toISOString() : null;
+    const patch =
+      data.mode === "clear"
+        ? { muted_until: null, banned_until: null, block_reason: null, blocked_by: null }
+        : data.mode === "mute"
+          ? {
+              muted_until: until ?? new Date(Date.now() + 100 * 365 * 24 * 3600_000).toISOString(),
+              banned_until: null,
+              block_reason: reason || "Нарушение правил вики",
+              blocked_by: context.userId,
+            }
+          : {
+              banned_until: until ?? new Date(Date.now() + 100 * 365 * 24 * 3600_000).toISOString(),
+              muted_until: null,
+              block_reason: reason || "Нарушение правил вики",
+              blocked_by: context.userId,
+            };
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin.from("profiles").update(patch).eq("id", data.userId);
+    if (error) return { ok: false as const, error: "Не удалось изменить блокировку" };
+
+    const { data: actor } = await context.supabase
+      .from("profiles")
+      .select("username")
+      .eq("id", context.userId)
+      .maybeSingle();
+    const label =
+      data.mode === "clear" ? "Блокировка снята" : data.mode === "mute" ? "Мут (только чтение)" : "Полный бан";
+    await logAdminAction({
+      actorId: context.userId,
+      actorName: actor?.username ?? "Администрация",
+      action: label,
+      targetType: "user",
+      targetLabel: target.username,
+      details: [hours ? `${hours} ч.` : data.mode === "clear" ? "" : "бессрочно", reason].filter(Boolean).join(" · "),
+    });
+    await notifyUser({
+      userId: data.userId,
+      kind: "moderation",
+      title: data.mode === "clear" ? "Ограничения сняты" : label,
+      body:
+        data.mode === "clear"
+          ? "Администрация сняла ограничения с вашего аккаунта."
+          : `${reason || "Нарушение правил вики"}${hours ? ` · срок: ${hours} ч.` : " · бессрочно"}`,
+      link: "/cabinet",
+    });
+    return { ok: true as const };
+  });
+
+/* ------------------------------------------------------------------ */
+/* Инструменты по материалам                                           */
+/* ------------------------------------------------------------------ */
+
+export const adminArticleAction = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { articleId: string; action: "reset-views" | "unpublish" | "delete" }) => data)
+  .handler(async ({ data, context }) => {
+    const { userHasRole, logAdminAction } = await import("./wiki-admin.server");
+    if (!(await userHasRole(context.userId, "admin"))) {
+      return { ok: false as const, error: "Только администратор может управлять материалами" };
+    }
+    const { data: article } = await context.supabase
+      .from("articles")
+      .select("id,title,author_id")
+      .eq("id", data.articleId)
+      .maybeSingle();
+    if (!article) return { ok: false as const, error: "Материал не найден" };
+
+    if (data.action === "reset-views") {
+      const { error } = await context.supabase.from("articles").update({ views: 0 }).eq("id", article.id);
+      if (error) return { ok: false as const, error: "Не удалось обнулить просмотры" };
+    } else if (data.action === "unpublish") {
+      const { error } = await context.supabase
+        .from("articles")
+        .update({ status: "draft", reject_reason: null })
+        .eq("id", article.id);
+      if (error) return { ok: false as const, error: "Не удалось снять с публикации" };
+    } else {
+      const { error } = await context.supabase.from("articles").delete().eq("id", article.id);
+      if (error) return { ok: false as const, error: "Не удалось удалить материал" };
+    }
+
+    const { data: actor } = await context.supabase
+      .from("profiles")
+      .select("username")
+      .eq("id", context.userId)
+      .maybeSingle();
+    const label =
+      data.action === "reset-views"
+        ? "Обнулены просмотры"
+        : data.action === "unpublish"
+          ? "Снято с публикации"
+          : "Материал удалён";
+    await logAdminAction({
+      actorId: context.userId,
+      actorName: actor?.username ?? "Администрация",
+      action: label,
+      targetType: "article",
+      targetLabel: article.title,
+    });
+    if (article.author_id && article.author_id !== context.userId && data.action !== "reset-views") {
+      const { notifyUser } = await import("./wiki-admin.server");
+      await notifyUser({
+        userId: article.author_id,
+        kind: "moderation",
+        title: label,
+        body: `«${article.title}»`,
+        link: "/cabinet",
+      });
+    }
+    return { ok: true as const };
+  });
+
+export const resetAllViews = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { userHasRole, logAdminAction } = await import("./wiki-admin.server");
+    if (!(await userHasRole(context.userId, "admin"))) {
+      return { ok: false as const, error: "Только администратор может обнулять просмотры" };
+    }
+    const { error } = await context.supabase.from("articles").update({ views: 0 }).gt("views", 0);
+    if (error) return { ok: false as const, error: "Не удалось обнулить просмотры" };
+    const { data: actor } = await context.supabase
+      .from("profiles")
+      .select("username")
+      .eq("id", context.userId)
+      .maybeSingle();
+    await logAdminAction({
+      actorId: context.userId,
+      actorName: actor?.username ?? "Администрация",
+      action: "Обнулены все просмотры",
+      targetType: "other",
+      targetLabel: "все материалы",
+    });
+    return { ok: true as const };
+  });
+
+export type AuditRow = {
+  id: string;
+  actor_name: string;
+  action: string;
+  target_type: string;
+  target_label: string;
+  details: string;
+  created_at: string;
+};
+
+export const listAuditLog = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<AuditRow[]> => {
+    const { data } = await context.supabase
+      .from("admin_audit_log")
+      .select("id,actor_name,action,target_type,target_label,details,created_at")
+      .order("created_at", { ascending: false })
+      .limit(50);
+    return data ?? [];
+  });

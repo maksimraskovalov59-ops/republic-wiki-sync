@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import {
+  Ban,
   Check,
   Eye,
   GitPullRequest,
@@ -11,7 +12,12 @@ import {
   Search,
   ShieldAlert,
   ShieldCheck,
+  ScrollText,
+  RotateCcw,
+  Trash2,
+  Unlock,
   Users,
+  VolumeX,
   X,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -27,6 +33,11 @@ import {
   listMembers,
   setUserAdmin,
   MemberRow,
+  setUserBlock,
+  adminArticleAction,
+  resetAllViews,
+  listAuditLog,
+  AuditRow,
 } from "@/lib/wiki.functions";
 
 export const Route = createFileRoute("/_authenticated/admin")({
@@ -48,6 +59,14 @@ export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminPage,
 });
 
+function isBlocked(m: MemberRow) {
+  const now = Date.now();
+  return (
+    (m.mutedUntil ? new Date(m.mutedUntil).getTime() > now : false) ||
+    (m.bannedUntil ? new Date(m.bannedUntil).getTime() > now : false)
+  );
+}
+
 function AdminPage() {
   const { isAdmin, loading } = useAuth();
   const queryClient = useQueryClient();
@@ -57,6 +76,11 @@ function AdminPage() {
   const doApprove = useServerFn(approveEditSuggestion);
   const doReject = useServerFn(rejectEditSuggestion);
   const doSetAdmin = useServerFn(setUserAdmin);
+  const doBlock = useServerFn(setUserBlock);
+  const doArticleAction = useServerFn(adminArticleAction);
+  const doResetAll = useServerFn(resetAllViews);
+  const [blockReason, setBlockReason] = useState<Record<string, string>>({});
+  const [blockHours, setBlockHours] = useState<Record<string, string>>({});
   const [memberQuery, setMemberQuery] = useState("");
   const [memberMsg, setMemberMsg] = useState<string | null>(null);
 
@@ -75,6 +99,53 @@ function AdminPage() {
     }
     setMemberMsg(makeAdmin ? "Права администратора выданы" : "Права администратора сняты");
     await queryClient.invalidateQueries({ queryKey: ["admin-members"] });
+  }
+
+  const audit = useQuery<AuditRow[]>({
+    queryKey: ["admin-audit"],
+    enabled: isAdmin,
+    queryFn: () => listAuditLog(),
+  });
+
+  async function block(userId: string, mode: "mute" | "ban" | "clear") {
+    setMemberMsg(null);
+    const raw = Number.parseInt(blockHours[userId] ?? "", 10);
+    const res = await doBlock({
+      data: {
+        userId,
+        mode,
+        hours: Number.isFinite(raw) && raw > 0 ? raw : null,
+        reason: blockReason[userId] ?? "",
+      },
+    });
+    if (!res.ok) {
+      setMemberMsg(res.error);
+      return;
+    }
+    setMemberMsg(
+      mode === "clear" ? "Ограничения сняты" : mode === "mute" ? "Участник в муте" : "Участник забанен",
+    );
+    await queryClient.invalidateQueries();
+  }
+
+  async function articleAction(articleId: string, action: "reset-views" | "unpublish" | "delete") {
+    if (action === "delete" && !confirm("Удалить материал безвозвратно?")) return;
+    const res = await doArticleAction({ data: { articleId, action } });
+    if (!res.ok) {
+      alert(res.error);
+      return;
+    }
+    await queryClient.invalidateQueries();
+  }
+
+  async function resetEverything() {
+    if (!confirm("Обнулить просмотры у всех материалов?")) return;
+    const res = await doResetAll();
+    if (!res.ok) {
+      alert(res.error);
+      return;
+    }
+    await queryClient.invalidateQueries();
   }
 
   const pending = useQuery({
@@ -329,6 +400,13 @@ function AdminPage() {
                       <p className="text-xs text-muted-foreground">
                         репутация {m.reputation}
                         {m.isCreator ? " · создатель" : m.isAdmin ? " · админ" : ""}
+                        {isBlocked(m) ? (
+                          <span className="text-magenta">
+                            {" · "}
+                            {m.bannedUntil && new Date(m.bannedUntil) > new Date() ? "бан" : "мут"}
+                            {m.blockReason ? `: ${m.blockReason}` : ""}
+                          </span>
+                        ) : null}
                       </p>
                     </div>
                   </div>
@@ -351,6 +429,43 @@ function AdminPage() {
                       <ShieldCheck className="size-3.5 text-cyan" /> Выдать админку
                     </button>
                   )}
+                  {m.isCreator ? null : (
+                    <div className="flex w-full flex-wrap items-center gap-2 border-t border-border pt-2.5">
+                      <input
+                        value={blockReason[m.id] ?? ""}
+                        onChange={(e) => setBlockReason((r) => ({ ...r, [m.id]: e.target.value }))}
+                        placeholder="Причина"
+                        className="min-w-0 flex-1 rounded-md border border-border bg-secondary px-3 py-1.5 text-xs outline-none focus:border-magenta"
+                      />
+                      <input
+                        value={blockHours[m.id] ?? ""}
+                        onChange={(e) => setBlockHours((r) => ({ ...r, [m.id]: e.target.value }))}
+                        placeholder="Часов (пусто — навсегда)"
+                        inputMode="numeric"
+                        className="w-[11rem] rounded-md border border-border bg-secondary px-3 py-1.5 text-xs outline-none focus:border-magenta"
+                      />
+                      <button
+                        onClick={() => void block(m.id, "mute")}
+                        className="flex items-center gap-1.5 rounded-md border border-border bg-secondary px-3 py-1.5 text-xs"
+                      >
+                        <VolumeX className="size-3.5 text-blue" /> Мут
+                      </button>
+                      <button
+                        onClick={() => void block(m.id, "ban")}
+                        className="flex items-center gap-1.5 rounded-md border border-magenta/60 bg-secondary px-3 py-1.5 text-xs"
+                      >
+                        <Ban className="size-3.5 text-magenta" /> Бан
+                      </button>
+                      {isBlocked(m) ? (
+                        <button
+                          onClick={() => void block(m.id, "clear")}
+                          className="flex items-center gap-1.5 rounded-md border border-cyan/60 bg-secondary px-3 py-1.5 text-xs"
+                        >
+                          <Unlock className="size-3.5 text-cyan" /> Разблокировать
+                        </button>
+                      ) : null}
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>
@@ -360,7 +475,15 @@ function AdminPage() {
           </div>
 
           <div className="surface-card p-5">
-            <h2 className="text-sm font-bold tracking-wide text-magenta uppercase">Опубликованные материалы</h2>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className="text-sm font-bold tracking-wide text-magenta uppercase">Опубликованные материалы</h2>
+              <button
+                onClick={() => void resetEverything()}
+                className="flex items-center gap-1.5 rounded-md border border-border bg-secondary px-3 py-1.5 text-xs"
+              >
+                <RotateCcw className="size-3.5 text-blue" /> Обнулить все просмотры
+              </button>
+            </div>
             <ul className="mt-3 space-y-2">
               {(published.data ?? []).map((a) => (
                 <li
@@ -374,11 +497,32 @@ function AdminPage() {
                   >
                     {a.title}
                   </Link>
-                  <span className="flex shrink-0 items-center gap-3 text-xs text-muted-foreground">
+                  <span className="flex shrink-0 flex-wrap items-center gap-2 text-xs text-muted-foreground">
                     {a.kind === "news" ? "Новость" : "Статья"} · {a.views}
                     <Link to="/editor" search={{ id: a.id }} className="text-cyan">
                       править
                     </Link>
+                    <button
+                      onClick={() => void articleAction(a.id, "reset-views")}
+                      title="Обнулить просмотры"
+                      className="flex items-center gap-1 rounded-md border border-border px-2 py-1"
+                    >
+                      <RotateCcw className="size-3.5 text-blue" /> просмотры
+                    </button>
+                    <button
+                      onClick={() => void articleAction(a.id, "unpublish")}
+                      title="Снять с публикации"
+                      className="flex items-center gap-1 rounded-md border border-border px-2 py-1"
+                    >
+                      <X className="size-3.5" /> снять
+                    </button>
+                    <button
+                      onClick={() => void articleAction(a.id, "delete")}
+                      title="Удалить материал"
+                      className="flex items-center gap-1 rounded-md border border-magenta/60 px-2 py-1 text-magenta"
+                    >
+                      <Trash2 className="size-3.5" /> удалить
+                    </button>
                   </span>
                 </li>
               ))}
@@ -402,6 +546,30 @@ function AdminPage() {
             >
               <Newspaper className="size-4" /> Добавить новость
             </Link>
+          </section>
+
+          <section className="surface-card p-5">
+            <h2 className="flex items-center gap-2 text-sm font-bold tracking-wide text-magenta uppercase">
+              <ScrollText className="size-4" /> Журнал действий
+            </h2>
+            {(audit.data ?? []).length === 0 ? (
+              <p className="mt-3 text-sm text-muted-foreground">Пока нет записей.</p>
+            ) : (
+              <ul className="mt-3 max-h-[420px] space-y-2 overflow-y-auto">
+                {(audit.data ?? []).map((row) => (
+                  <li key={row.id} className="rounded-lg border border-border bg-secondary/40 p-3">
+                    <p className="text-xs font-semibold text-foreground">{row.action}</p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      {row.target_label}
+                      {row.details ? ` · ${row.details}` : ""}
+                    </p>
+                    <p className="mt-0.5 text-[11px] text-muted-foreground">
+                      {row.actor_name} · {new Date(row.created_at).toLocaleString("ru-RU")}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            )}
           </section>
         </aside>
       </main>

@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_audit_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          actor_name: string
+          created_at: string
+          details: string
+          id: string
+          target_label: string
+          target_type: string
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          actor_name?: string
+          created_at?: string
+          details?: string
+          id?: string
+          target_label?: string
+          target_type?: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          actor_name?: string
+          created_at?: string
+          details?: string
+          id?: string
+          target_label?: string
+          target_type?: string
+        }
+        Relationships: []
+      }
       article_revisions: {
         Row: {
           article_id: string
@@ -197,31 +230,76 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          kind: string
+          link: string | null
+          read_at: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          body?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          link?: string | null
+          read_at?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          link?: string | null
+          read_at?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
+          banned_until: string | null
           bio: string
+          block_reason: string | null
+          blocked_by: string | null
           created_at: string
           id: string
           link: string | null
+          muted_until: string | null
           reputation: number
           username: string
         }
         Insert: {
           avatar_url?: string | null
+          banned_until?: string | null
           bio?: string
+          block_reason?: string | null
+          blocked_by?: string | null
           created_at?: string
           id: string
           link?: string | null
+          muted_until?: string | null
           reputation?: number
           username: string
         }
         Update: {
           avatar_url?: string | null
+          banned_until?: string | null
           bio?: string
+          block_reason?: string | null
+          blocked_by?: string | null
           created_at?: string
           id?: string
           link?: string | null
+          muted_until?: string | null
           reputation?: number
           username?: string
         }
@@ -285,6 +363,7 @@ export type Database = {
         Returns: boolean
       }
       increment_article_views: { Args: { _slug: string }; Returns: undefined }
+      is_blocked: { Args: { _user_id: string }; Returns: boolean }
       is_creator: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {

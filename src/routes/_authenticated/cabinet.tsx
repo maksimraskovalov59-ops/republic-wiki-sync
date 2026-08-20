@@ -19,6 +19,8 @@ import { claimAdmin, getPublicProfile } from "@/lib/wiki.functions";
 import { SiteHeader } from "@/components/SiteHeader";
 import { PixelField } from "@/components/PixelField";
 import { LowReputationNotice } from "@/components/LowReputationNotice";
+import { ModerationBanner } from "@/components/ModerationBanner";
+import { NotificationsPanel } from "@/components/NotificationsPanel";
 import { useTheme } from "@/hooks/useTheme";
 import { ThemePicker } from "@/components/ThemePicker";
 
@@ -147,6 +149,7 @@ function Cabinet() {
       <SiteHeader />
       <main className="mx-auto grid max-w-7xl 2xl:max-w-[1600px] min-[1900px]:max-w-[1800px] gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[minmax(0,1fr)_320px] 2xl:grid-cols-[minmax(0,1fr)_380px]">
         <section className="min-w-0 space-y-4">
+          <ModerationBanner enabled={!!user} />
           <div className="surface-card flex flex-wrap items-center justify-between gap-4 p-5">
             <div className="min-w-0">
               <p className="text-xs tracking-widest text-muted-foreground uppercase">Кабинет</p>
@@ -357,6 +360,8 @@ function Cabinet() {
               </form>
             )}
           </section>
+
+          <NotificationsPanel enabled={!!user} />
 
           <section className="surface-card p-5 text-sm text-muted-foreground">
             <h2 className="text-sm font-bold tracking-wide text-cyan uppercase">Как это работает</h2>
