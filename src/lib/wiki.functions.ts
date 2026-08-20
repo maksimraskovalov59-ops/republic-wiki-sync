@@ -24,7 +24,7 @@ export const getHomeData = createServerFn({ method: "GET" }).handler(async () =>
 });
 
 export const getArticles = createServerFn({ method: "GET" })
-  .inputValidator((data: { kind?: "article" | "news"; category?: string; limit?: number; offset?: number }) => data)
+  .inputValidator((data: { kind?: "article" | "news" | undefined; category?: string | undefined; limit?: number | undefined; offset?: number | undefined }) => data)
   .handler(async ({ data }) => {
     const sb = createPublicClient();
     let q = sb
@@ -156,7 +156,6 @@ export const deleteComment = createServerFn({ method: "POST" })
       .from("comments")
       .select("author_id,article_id")
       .eq("id", data.id)
-
       .maybeSingle();
     if (!comment) return { ok: false as const, error: "Комментарий не найден" };
 
@@ -251,7 +250,7 @@ export const listEditSuggestions = createServerFn({ method: "GET" })
         .select("*, articles(slug, title, author_id)")
         .order("created_at", { ascending: false })
         .limit(100);
-      return (data ?? []) as unknown as Record<string, unknown>[];
+      return (data ?? []) as EditSuggestion[];
     }
     const [own, authored] = await Promise.all([
       context.supabase
@@ -263,8 +262,8 @@ export const listEditSuggestions = createServerFn({ method: "GET" })
       context.supabase.from("articles").select("id").eq("author_id", context.userId),
     ]);
     const ids = new Set((authored.data ?? []).map((a) => a.id));
-    const byArticle = (own.data ?? []).filter((s) => ids.has((s as unknown as { article_id: string }).article_id));
-    return [...(own.data ?? []), ...byArticle] as unknown as Record<string, unknown>[];
+    const byArticle = (own.data ?? []).filter((s) => ids.has(s.article_id));
+    return [...(own.data ?? []), ...byArticle] as EditSuggestion[];
   });
 
 export const approveEditSuggestion = createServerFn({ method: "POST" })
@@ -282,7 +281,7 @@ export const approveEditSuggestion = createServerFn({ method: "POST" })
       .maybeSingle();
     if (!suggestion) return { ok: false as const, error: "Предложение не найдено" };
 
-    const articleId = (suggestion as unknown as { article_id: string }).article_id;
+    const articleId = (suggestion as EditSuggestion).article_id;
     const { error: updErr } = await context.supabase
       .from("articles")
       .update({
@@ -324,3 +323,26 @@ export const rejectEditSuggestion = createServerFn({ method: "POST" })
     if (error) return { ok: false as const, error: "Не удалось отклонить предложение" };
     return { ok: true as const };
   });
+
+export type SuggestionArticle = {
+  slug: string;
+  title: string;
+  author_id: string | null;
+};
+
+export type EditSuggestion = {
+  id: string;
+  article_id: string;
+  author_id: string;
+  author_name: string;
+  title: string;
+  summary: string;
+  content: string;
+  categories: string[];
+  cover_url: string | null;
+  note: string;
+  status: string;
+  reject_reason: string | null;
+  created_at: string;
+  articles: SuggestionArticle | null;
+};
