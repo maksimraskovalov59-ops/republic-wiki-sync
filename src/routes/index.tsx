@@ -179,6 +179,39 @@ function Index() {
             </Link>
           ) : null}
         </aside>
+
+        <section className="order-4 lg:col-span-3">
+          <div className="surface-card p-5 sm:p-6">
+            <h2 className="text-lg font-bold text-cyan">Разделы вики</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Всё о сервере в одном месте — заходи в нужный раздел или начни с общего списка.
+            </p>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+              {SECTIONS.map((s) =>
+                "params" in s ? (
+                  <Link
+                    key={s.label}
+                    to={s.to}
+                    params={s.params}
+                    className="rounded-lg border border-border bg-secondary/40 p-4 transition-colors hover:border-cyan"
+                  >
+                    <span className="block text-sm font-semibold text-foreground">{s.label}</span>
+                    <span className="mt-1 block text-xs text-muted-foreground">{s.hint}</span>
+                  </Link>
+                ) : (
+                  <Link
+                    key={s.label}
+                    to={s.to}
+                    className="rounded-lg border border-border bg-secondary/40 p-4 transition-colors hover:border-cyan"
+                  >
+                    <span className="block text-sm font-semibold text-foreground">{s.label}</span>
+                    <span className="mt-1 block text-xs text-muted-foreground">{s.hint}</span>
+                  </Link>
+                ),
+              )}
+            </div>
+          </div>
+        </section>
       </main>
     </div>
   );
