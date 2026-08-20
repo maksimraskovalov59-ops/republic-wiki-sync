@@ -24,6 +24,15 @@ export const getHomeData = createServerFn({ method: "GET" }).handler(async () =>
   return { news: news.data ?? [], popular: popular.data ?? [] };
 });
 
+export const getRandomArticleSlug = createServerFn({ method: "GET" }).handler(async () => {
+  const sb = createPublicClient();
+  const { data } = await sb.from("articles").select("slug").eq("status", "published");
+  const slugs = data ?? [];
+  if (slugs.length === 0) return null;
+  const idx = Math.floor(Math.random() * slugs.length);
+  return slugs[idx].slug;
+});
+
 export const getArticles = createServerFn({ method: "GET" })
   .inputValidator((data: { kind?: "article" | "news" | undefined; category?: string | undefined; limit?: number | undefined; offset?: number | undefined }) => data)
   .handler(async ({ data }) => {
