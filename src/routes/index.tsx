@@ -197,6 +197,42 @@ function Index() {
             <span className="text-foreground">экономика</span> и{" "}
             <span className="text-foreground">политика</span> RepublicMC — в одной вики.
           </p>
+
+          <div className="mt-6 grid w-full grid-cols-2 gap-3 sm:mt-8 lg:grid-cols-4">
+            {[
+              { label: "Материалов", value: totals.articles },
+              { label: "Просмотров", value: totals.views },
+              { label: "Категорий", value: categories.length },
+              { label: "Правок", value: recent.revisions.length },
+            ].map((s) => (
+              <div key={s.label} className="surface-card p-4">
+                <span className="block text-2xl font-extrabold text-brand-gradient">{s.value}</span>
+                <span className="mt-1 block text-[11px] tracking-widest text-muted-foreground uppercase">
+                  {s.label}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {categories.length > 0 ? (
+            <div className="surface-card mt-4 w-full p-5 text-left">
+              <h2 className="flex items-center gap-2 text-base font-bold text-cyan">
+                <FolderTree className="size-4 shrink-0" /> Категории
+              </h2>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {categories.map((c) => (
+                  <Link
+                    key={c}
+                    to="/category/$name"
+                    params={{ name: c }}
+                    className="rounded-md border border-border bg-secondary/40 px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-cyan hover:text-foreground"
+                  >
+                    {c}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          ) : null}
         </section>
 
         <aside className="order-2 space-y-3 lg:order-3">
