@@ -332,6 +332,201 @@ export type SuggestionArticle = {
   author_id: string | null;
 };
 
+export const CREATOR_USERNAME = "TheHapPpyONE";
+export const LOW_REPUTATION_THRESHOLD = -5;
+
+export type MemberRow = {
+  id: string;
+  username: string;
+  avatar_url: string | null;
+  reputation: number;
+  created_at: string;
+  isAdmin: boolean;
+  isCreator: boolean;
+};
+
+export const listMembers = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { q?: string | undefined }) => data)
+  .handler(async ({ data, context }): Promise<MemberRow[]> => {
+    const { userHasRole } = await import("./wiki-admin.server");
+    if (!(await userHasRole(context.userId, "admin"))) return [];
+
+    let query = context.supabase
+      .from("profiles")
+      .select("id,username,avatar_url,reputation,created_at")
+      .order("created_at", { ascending: true })
+      .limit(50);
+    const q = (data.q ?? "").trim().replace(/[%_]/g, "\\$&");
+    if (q) query = query.ilike("username", `%${q}%`);
+    const { data: profiles } = await query;
+    const rows = profiles ?? [];
+    if (rows.length === 0) return [];
+
+    const { data: roles } = await context.supabase
+      .from("user_roles")
+      .select("user_id,role")
+      .in(
+        "user_id",
+        rows.map((r) => r.id),
+      );
+    const admins = new Set((roles ?? []).filter((r) => r.role === "admin").map((r) => r.user_id));
+    return rows.map((r) => ({
+      id: r.id,
+      username: r.username,
+      avatar_url: r.avatar_url,
+      reputation: r.reputation,
+      created_at: r.created_at,
+      isAdmin: admins.has(r.id),
+      isCreator: r.username.toLowerCase() === CREATOR_USERNAME.toLowerCase(),
+    }));
+  });
+
+export const setUserAdmin = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { userId: string; makeAdmin: boolean }) => data)
+  .handler(async ({ data, context }) => {
+    const { userHasRole } = await import("./wiki-admin.server");
+    if (!(await userHasRole(context.userId, "admin"))) {
+      return { ok: false as const, error: "Только администратор может менять права" };
+    }
+    const { data: profile } = await context.supabase
+      .from("profiles")
+      .select("username")
+      .eq("id", data.userId)
+      .maybeSingle();
+    if (!profile) return { ok: false as const, error: "Участник не найден" };
+
+    const isCreator = profile.username.toLowerCase() === CREATOR_USERNAME.toLowerCase();
+    if (!data.makeAdmin && isCreator) {
+      return { ok: false as const, error: "У создателя нельзя снять права администратора" };
+    }
+    if (!data.makeAdmin && data.userId === context.userId) {
+      return { ok: false as const, error: "Нельзя снять права с самого себя" };
+    }
+
+    if (data.makeAdmin) {
+      const { error } = await context.supabase
+        .from("user_roles")
+        .upsert({ user_id: data.userId, role: "admin" }, { onConflict: "user_id,role" });
+      if (error) return { ok: false as const, error: "Не удалось выдать права" };
+    } else {
+      const { error } = await context.supabase
+        .from("user_roles")
+        .delete()
+        .eq("user_id", data.userId)
+        .eq("role", "admin");
+      if (error) return { ok: false as const, error: "Не удалось снять права" };
+    }
+    return { ok: true as const };
+  });
+
+export type PublicProfile = {
+  id: string;
+  username: string;
+  avatar_url: string | null;
+  bio: string;
+  link: string | null;
+  reputation: number;
+  created_at: string;
+  isAdmin: boolean;
+  isCreator: boolean;
+  stats: {
+    published: number;
+    views: number;
+    revisions: number;
+    comments: number;
+  };
+  articles: { slug: string; title: string; summary: string; kind: string; views: number; updated_at: string }[];
+  activity: { kind: "article" | "revision" | "comment"; label: string; slug: string | null; at: string }[];
+};
+
+export const getPublicProfile = createServerFn({ method: "GET" })
+  .inputValidator((data: { username: string }) => data)
+  .handler(async ({ data }): Promise<PublicProfile | null> => {
+    const sb = createPublicClient();
+    const name = data.username.trim().replace(/[%_]/g, "\\$&");
+    if (!name) return null;
+    const { data: profile } = await sb
+      .from("profiles")
+      .select("id,username,avatar_url,bio,link,reputation,created_at")
+      .ilike("username", name)
+      .limit(1)
+      .maybeSingle();
+    if (!profile) return null;
+
+    const [articles, revisions, comments, roleRow] = await Promise.all([
+      sb
+        .from("articles")
+        .select("slug,title,summary,kind,views,updated_at")
+        .eq("author_id", profile.id)
+        .eq("status", "published")
+        .order("updated_at", { ascending: false })
+        .limit(30),
+      sb
+        .from("article_revisions")
+        .select("note,created_at,articles(slug,title)")
+        .eq("editor_id", profile.id)
+        .order("created_at", { ascending: false })
+        .limit(20),
+      sb
+        .from("comments")
+        .select("body,created_at,articles(slug,title)")
+        .eq("author_id", profile.id)
+        .order("created_at", { ascending: false })
+        .limit(20),
+      sb.from("articles").select("id").eq("author_id", profile.id).limit(1),
+    ]);
+    void roleRow;
+
+    const arts = articles.data ?? [];
+    const revs = revisions.data ?? [];
+    const coms = comments.data ?? [];
+
+    const activity: PublicProfile["activity"] = [
+      ...arts.map((a) => ({
+        kind: "article" as const,
+        label: `Статья «${a.title}»`,
+        slug: a.slug,
+        at: a.updated_at,
+      })),
+      ...revs.map((r) => ({
+        kind: "revision" as const,
+        label: `Правка «${r.articles?.title ?? "статья"}»: ${r.note}`,
+        slug: r.articles?.slug ?? null,
+        at: r.created_at,
+      })),
+      ...coms.map((c) => ({
+        kind: "comment" as const,
+        label: `Комментарий к «${c.articles?.title ?? "статья"}»: ${c.body.slice(0, 80)}`,
+        slug: c.articles?.slug ?? null,
+        at: c.created_at,
+      })),
+    ]
+      .sort((a, b) => (a.at < b.at ? 1 : -1))
+      .slice(0, 15);
+
+    return {
+      id: profile.id,
+      username: profile.username,
+      avatar_url: profile.avatar_url,
+      bio: profile.bio ?? "",
+      link: profile.link,
+      reputation: profile.reputation,
+      created_at: profile.created_at,
+      isAdmin: false,
+      isCreator: profile.username.toLowerCase() === CREATOR_USERNAME.toLowerCase(),
+      stats: {
+        published: arts.length,
+        views: arts.reduce((sum, a) => sum + (a.views ?? 0), 0),
+        revisions: revs.length,
+        comments: coms.length,
+      },
+      articles: arts,
+      activity,
+    };
+  });
+
 export type EditSuggestion = {
   id: string;
   article_id: string;
