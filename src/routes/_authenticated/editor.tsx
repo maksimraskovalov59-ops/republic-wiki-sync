@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { slugify } from "@/lib/slug";
 import { SiteHeader } from "@/components/SiteHeader";
 import { PixelField } from "@/components/PixelField";
+import { ModerationBanner } from "@/components/ModerationBanner";
 import { Markdown } from "@/components/Markdown";
 
 export const Route = createFileRoute("/_authenticated/editor")({
