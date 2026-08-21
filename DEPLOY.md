@@ -121,6 +121,19 @@ select id, 'admin' from auth.users where lower(email) = 'ваш@email';
   Ручное переопределение: `NITRO_PRESET=vercel npm run build`.
 - `vercel.json` задаёт `buildCommand`/`installCommand` и отключает автодетект фреймворка.
 - `.env.example` перечисляет все нужные переменные окружения.
+- `.env` добавлен в `.gitignore` — **он не должен попадать в репозиторий**. Vite подставляет
+  `VITE_*` в бандл на этапе сборки, поэтому закоммиченный `.env` перебивает переменные Vercel,
+  и приложение обращается к чужому бэкенду (ошибка `Unsupported provider: provider is not enabled`).
+  Если `.env` уже был закоммичен ранее — удалите его из репозитория:
+
+  ```bash
+  git rm --cached .env
+  git commit -m "chore: stop tracking .env"
+  git push
+  ```
+
+  Затем в Vercel → Deployments → ⋯ → **Redeploy** с выключенным «Use existing Build Cache».
+
 
 Локальная проверка production-сборки:
 
