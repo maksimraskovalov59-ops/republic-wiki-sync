@@ -171,7 +171,9 @@ NITRO_PRESET=vercel npm run build
 | `Missing Supabase environment variable(s)` | не заданы серверные `SUPABASE_*` в Vercel |
 | `supabaseUrl is required.` / «This page didn't load» на прод-домене | нет серверных `SUPABASE_URL` и `SUPABASE_PUBLISHABLE_KEY` в Vercel (Production + Preview) → добавьте и сделайте **Redeploy** |
 | Пустые списки статей на прод-домене | не применены GRANT/RLS → выполните `supabase db push` заново |
-| `Unsupported provider` при входе через GitHub/Discord | провайдер не включён в Authentication → Providers |
+| Запросы уходят на чужой project-ref `*.supabase.co` | в репозитории лежит закоммиченный `.env` — удалите его из git (`git rm --cached .env`), задайте переменные только в Vercel и сделайте Redeploy без кеша |
+| `Unsupported provider` при входе через GitHub/Discord | провайдер не включён в Authentication → Providers **того** проекта, чей URL в `VITE_SUPABASE_URL` |
+
 | Редирект после входа на `localhost` | не обновлён Site URL в Supabase |
 | Сборка падает на Nitro/Cloudflare | явно задайте `NITRO_PRESET=vercel` в Environment Variables |
 | Ошибки FK при импорте данных | сначала `auth.users`, потом `public`, с `--disable-triggers` |
