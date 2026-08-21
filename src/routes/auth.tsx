@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { LogIn, UserPlus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable/index";
+
 import { SiteHeader } from "@/components/SiteHeader";
 import { PixelField } from "@/components/PixelField";
 
@@ -69,16 +69,18 @@ function AuthPage() {
     void navigate({ to: "/cabinet", replace: true });
   }
 
-  async function signInWithGoogle() {
+  async function signInWithProvider(provider: "github" | "discord") {
     setBusy(true);
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
+    setError(null);
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo: window.location.origin },
     });
     setBusy(false);
-    if (result.error) {
-      setError(result.error.message);
+    if (error) {
+      setError(error.message);
     }
-    // Если redirected == true, страница уже ушла на провайдера.
+    // Если ошибки нет — браузер уже уходит на страницу провайдера.
   }
 
   async function resetPassword() {
@@ -125,20 +127,30 @@ function AuthPage() {
           ))}
         </div>
 
-        <button
-          type="button"
-          onClick={signInWithGoogle}
-          disabled={busy}
-          className="surface-card mt-3 flex w-full items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-medium text-foreground transition-shadow hover:glow-cyan"
-        >
-          <svg className="size-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.84z" />
-            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-          </svg>
-          Войти через Google
-        </button>
+        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+          <button
+            type="button"
+            onClick={() => void signInWithProvider("github")}
+            disabled={busy}
+            className="surface-card flex w-full items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-medium text-foreground transition-shadow hover:glow-cyan disabled:opacity-60"
+          >
+            <svg className="size-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M12 .5C5.37.5 0 5.87 0 12.5c0 5.3 3.44 9.8 8.21 11.39.6.11.82-.26.82-.58v-2.03c-3.34.73-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.09-.75.08-.73.08-.73 1.2.08 1.84 1.24 1.84 1.24 1.07 1.83 2.81 1.3 3.5.99.11-.78.42-1.31.76-1.61-2.67-.3-5.47-1.34-5.47-5.96 0-1.32.47-2.4 1.24-3.24-.13-.3-.54-1.53.12-3.18 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 6 0c2.29-1.55 3.3-1.23 3.3-1.23.66 1.65.25 2.88.12 3.18.77.84 1.24 1.92 1.24 3.24 0 4.63-2.81 5.65-5.49 5.95.43.37.81 1.1.81 2.22v3.29c0 .32.21.7.83.58A11.99 11.99 0 0 0 24 12.5C24 5.87 18.63.5 12 .5z" />
+            </svg>
+            GitHub
+          </button>
+          <button
+            type="button"
+            onClick={() => void signInWithProvider("discord")}
+            disabled={busy}
+            className="surface-card flex w-full items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-medium text-foreground transition-shadow hover:glow-magenta disabled:opacity-60"
+          >
+            <svg className="size-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M20.32 4.37A19.8 19.8 0 0 0 15.43 3a13.9 13.9 0 0 0-.62 1.28 18.4 18.4 0 0 0-5.62 0A13.7 13.7 0 0 0 8.56 3 19.7 19.7 0 0 0 3.67 4.37C.56 9.05-.28 13.58.14 18.05a19.9 19.9 0 0 0 6.07 3.08c.47-.65.89-1.34 1.25-2.06a12.9 12.9 0 0 1-1.97-.95c.17-.12.33-.25.48-.38a14.2 14.2 0 0 0 12.06 0c.16.14.32.26.48.38-.63.37-1.29.69-1.98.95.36.72.78 1.41 1.25 2.06a19.86 19.86 0 0 0 6.08-3.08c.5-5.18-.85-9.67-3.54-13.68zM8.02 15.33c-1.18 0-2.15-1.09-2.15-2.43s.95-2.44 2.15-2.44c1.21 0 2.18 1.1 2.16 2.44 0 1.34-.96 2.43-2.16 2.43zm7.96 0c-1.18 0-2.15-1.09-2.15-2.43s.95-2.44 2.15-2.44c1.21 0 2.18 1.1 2.16 2.44 0 1.34-.95 2.43-2.16 2.43z" />
+            </svg>
+            Discord
+          </button>
+        </div>
 
         <form onSubmit={submit} className="surface-card mt-4 space-y-4 p-5">
           {mode === "up" && (
