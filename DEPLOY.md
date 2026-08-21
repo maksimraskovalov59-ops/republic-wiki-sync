@@ -121,6 +121,19 @@ select id, 'admin' from auth.users where lower(email) = 'ваш@email';
   Ручное переопределение: `NITRO_PRESET=vercel npm run build`.
 - `vercel.json` задаёт `buildCommand`/`installCommand` и отключает автодетект фреймворка.
 - `.env.example` перечисляет все нужные переменные окружения.
+- `.env` добавлен в `.gitignore` — **он не должен попадать в репозиторий**. Vite подставляет
+  `VITE_*` в бандл на этапе сборки, поэтому закоммиченный `.env` перебивает переменные Vercel,
+  и приложение обращается к чужому бэкенду (ошибка `Unsupported provider: provider is not enabled`).
+  Если `.env` уже был закоммичен ранее — удалите его из репозитория:
+
+  ```bash
+  git rm --cached .env
+  git commit -m "chore: stop tracking .env"
+  git push
+  ```
+
+  Затем в Vercel → Deployments → ⋯ → **Redeploy** с выключенным «Use existing Build Cache».
+
 
 Локальная проверка production-сборки:
 
@@ -158,7 +171,9 @@ NITRO_PRESET=vercel npm run build
 | `Missing Supabase environment variable(s)` | не заданы серверные `SUPABASE_*` в Vercel |
 | `supabaseUrl is required.` / «This page didn't load» на прод-домене | нет серверных `SUPABASE_URL` и `SUPABASE_PUBLISHABLE_KEY` в Vercel (Production + Preview) → добавьте и сделайте **Redeploy** |
 | Пустые списки статей на прод-домене | не применены GRANT/RLS → выполните `supabase db push` заново |
-| `Unsupported provider` при входе через GitHub/Discord | провайдер не включён в Authentication → Providers |
+| Запросы уходят на чужой project-ref `*.supabase.co` | в репозитории лежит закоммиченный `.env` — удалите его из git (`git rm --cached .env`), задайте переменные только в Vercel и сделайте Redeploy без кеша |
+| `Unsupported provider` при входе через GitHub/Discord | провайдер не включён в Authentication → Providers **того** проекта, чей URL в `VITE_SUPABASE_URL` |
+
 | Редирект после входа на `localhost` | не обновлён Site URL в Supabase |
 | Сборка падает на Nitro/Cloudflare | явно задайте `NITRO_PRESET=vercel` в Environment Variables |
 | Ошибки FK при импорте данных | сначала `auth.users`, потом `public`, с `--disable-triggers` |
