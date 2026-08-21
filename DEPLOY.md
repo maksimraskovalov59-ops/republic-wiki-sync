@@ -144,7 +144,7 @@ NITRO_PRESET=vercel npm run build
 ## 6. Чек-лист после деплоя
 
 - [ ] Главная открывается, статьи и категории загружаются (SSR работает).
-- [ ] Регистрация/вход, Google OAuth.
+- [ ] Регистрация/вход, OAuth через GitHub и Discord.
 - [ ] Создание статьи → появляется в кабинете → админ публикует.
 - [ ] Колокольчик уведомлений получает событие о публикации.
 - [ ] Админка открывается по `ADMIN_UNLOCK_PASSWORD`, выдача ролей работает.
@@ -158,7 +158,65 @@ NITRO_PRESET=vercel npm run build
 | `Missing Supabase environment variable(s)` | не заданы серверные `SUPABASE_*` в Vercel |
 | `supabaseUrl is required.` / «This page didn't load» на прод-домене | нет серверных `SUPABASE_URL` и `SUPABASE_PUBLISHABLE_KEY` в Vercel (Production + Preview) → добавьте и сделайте **Redeploy** |
 | Пустые списки статей на прод-домене | не применены GRANT/RLS → выполните `supabase db push` заново |
-| `Unsupported provider` при входе через Google | провайдер не включён в Authentication → Providers |
+| `Unsupported provider` при входе через GitHub/Discord | провайдер не включён в Authentication → Providers |
 | Редирект после входа на `localhost` | не обновлён Site URL в Supabase |
 | Сборка падает на Nitro/Cloudflare | явно задайте `NITRO_PRESET=vercel` в Environment Variables |
 | Ошибки FK при импорте данных | сначала `auth.users`, потом `public`, с `--disable-triggers` |
+
+## 8. Вход через GitHub и Discord
+
+Вход через Google убран. На странице `/auth` теперь две кнопки — GitHub и Discord
+(`supabase.auth.signInWithOAuth({ provider })`, редирект на `window.location.origin`).
+
+### 8.1. Callback URL
+
+Один и тот же адрес для обоих провайдеров:
+
+```
+https://<PROJECT-REF>.supabase.co/auth/v1/callback
+```
+
+`<PROJECT-REF>` — ref твоего Supabase-проекта (Project Settings → General).
+
+### 8.2. GitHub OAuth App
+
+1. GitHub → Settings → Developer settings → **OAuth Apps** → New OAuth App.
+2. Application name: `RepublicMC WIKI`.
+3. Homepage URL: адрес сайта на Vercel (например `https://republic-wiki.vercel.app`).
+4. Authorization callback URL: адрес из 8.1.
+5. Register application → Generate a new client secret.
+6. Скопируй **Client ID** и **Client Secret**.
+
+### 8.3. Discord Application
+
+1. https://discord.com/developers/applications → **New Application** → название.
+2. Раздел **OAuth2** → Redirects → Add Redirect → вставь адрес из 8.1 → Save.
+3. Там же скопируй **Client ID** и **Client Secret** (Reset Secret, если не показан).
+4. Scopes в коде не задаются вручную — Supabase запрашивает `identify email`.
+
+### 8.4. Включение в Supabase
+
+1. Supabase Dashboard → **Authentication → Providers**.
+2. **GitHub**: Enable → вставь Client ID / Client Secret → Save.
+3. **Discord**: Enable → вставь Client ID / Client Secret → Save.
+4. **Authentication → URL Configuration**:
+   - Site URL: `https://<твой-домен>`
+   - Redirect URLs: `https://<твой-домен>/**` и (для локальной разработки)
+     `http://localhost:5173/**`.
+5. Google можно выключить — он больше не используется.
+
+### 8.5. Vercel
+
+Отдельных переменных для OAuth не нужно: секреты провайдеров живут в Supabase.
+Проверь только, что заданы `VITE_SUPABASE_URL` и `VITE_SUPABASE_PUBLISHABLE_KEY`
+(Production + Preview) и что домен Vercel указан в Site URL / Redirect URLs.
+После смены домена — обнови Homepage/Redirect и в GitHub, и в Discord.
+
+### 8.6. Проверка и типовые ошибки
+
+| Симптом | Решение |
+| --- | --- |
+| `Unsupported provider: provider is not enabled` | провайдер не включён в Authentication → Providers |
+| `redirect_uri is not associated with this application` | callback в GitHub/Discord не совпадает с 8.1 |
+| После входа кидает на `localhost` | не обновлён Site URL в Supabase |
+| Ник пустой после OAuth-входа | задай никнейм в кабинете — он берётся из профиля провайдера, если тот его отдал |
