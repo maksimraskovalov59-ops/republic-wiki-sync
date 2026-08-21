@@ -69,16 +69,18 @@ function AuthPage() {
     void navigate({ to: "/cabinet", replace: true });
   }
 
-  async function signInWithGoogle() {
+  async function signInWithProvider(provider: "github" | "discord") {
     setBusy(true);
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
+    setError(null);
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo: window.location.origin },
     });
     setBusy(false);
-    if (result.error) {
-      setError(result.error.message);
+    if (error) {
+      setError(error.message);
     }
-    // Если redirected == true, страница уже ушла на провайдера.
+    // Если ошибки нет — браузер уже уходит на страницу провайдера.
   }
 
   async function resetPassword() {
