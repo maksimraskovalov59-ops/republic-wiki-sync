@@ -58,12 +58,17 @@ function Cabinet() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const doClaim = useServerFn(claimAdmin);
+  const doUpdateUsername = useServerFn(updateUsername);
   const [password, setPassword] = useState("");
   const [claimMsg, setClaimMsg] = useState<string | null>(null);
   const { theme, setTheme } = useTheme(!!user);
   const [profileForm, setProfileForm] = useState<{ bio: string; link: string; avatar_url: string } | null>(null);
   const [profileMsg, setProfileMsg] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [newUsername, setNewUsername] = useState("");
+  const [usernameMsg, setUsernameMsg] = useState<string | null>(null);
+  const [usernameBusy, setUsernameBusy] = useState(false);
+
 
   const profile = useQuery({
     queryKey: ["my-profile", user?.id],
