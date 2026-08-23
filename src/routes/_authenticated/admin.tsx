@@ -480,42 +480,43 @@ function AdminPage() {
                     </button>
                   )}
                   {m.isCreator ? null : (
-                    <div className="flex w-full flex-wrap items-center gap-2 border-t border-border pt-2.5">
+                    <div className="grid w-full grid-cols-2 flex-wrap items-center gap-2 border-t border-border pt-2.5 sm:flex">
                       <input
                         value={blockReason[m.id] ?? ""}
                         onChange={(e) => setBlockReason((r) => ({ ...r, [m.id]: e.target.value }))}
                         placeholder="Причина"
-                        className="min-w-0 flex-1 rounded-md border border-border bg-secondary px-3 py-1.5 text-xs outline-none focus:border-magenta"
+                        className="col-span-2 min-w-0 flex-1 rounded-md border border-border bg-secondary px-3 py-1.5 text-xs outline-none focus:border-magenta"
                       />
                       <input
                         value={blockHours[m.id] ?? ""}
                         onChange={(e) => setBlockHours((r) => ({ ...r, [m.id]: e.target.value }))}
                         placeholder="Часов (пусто — навсегда)"
                         inputMode="numeric"
-                        className="w-[11rem] rounded-md border border-border bg-secondary px-3 py-1.5 text-xs outline-none focus:border-magenta"
+                        className="col-span-2 min-w-0 rounded-md border border-border bg-secondary px-3 py-1.5 text-xs outline-none focus:border-magenta sm:w-[11rem]"
                       />
                       <button
                         onClick={() => void block(m.id, "mute")}
-                        className="flex items-center gap-1.5 rounded-md border border-border bg-secondary px-3 py-1.5 text-xs"
+                        className="flex items-center justify-center gap-1.5 rounded-md border border-border bg-secondary px-3 py-1.5 text-xs"
                       >
                         <VolumeX className="size-3.5 text-blue" /> Мут
                       </button>
                       <button
                         onClick={() => void block(m.id, "ban")}
-                        className="flex items-center gap-1.5 rounded-md border border-magenta/60 bg-secondary px-3 py-1.5 text-xs"
+                        className="flex items-center justify-center gap-1.5 rounded-md border border-magenta/60 bg-secondary px-3 py-1.5 text-xs"
                       >
                         <Ban className="size-3.5 text-magenta" /> Бан
                       </button>
                       {isBlocked(m) ? (
                         <button
                           onClick={() => void block(m.id, "clear")}
-                          className="flex items-center gap-1.5 rounded-md border border-cyan/60 bg-secondary px-3 py-1.5 text-xs"
+                          className="flex items-center justify-center gap-1.5 rounded-md border border-cyan/60 bg-secondary px-3 py-1.5 text-xs"
                         >
                           <Unlock className="size-3.5 text-cyan" /> Разблокировать
                         </button>
                       ) : null}
                     </div>
                   )}
+
                 </li>
               ))}
             </ul>
