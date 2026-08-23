@@ -546,7 +546,7 @@ function AdminPage() {
                   >
                     {a.title}
                   </Link>
-                  <span className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                  <span className="mt-2 grid grid-cols-2 flex-wrap items-center gap-2 text-xs text-muted-foreground sm:flex">
                     {a.kind === "news" ? "Новость" : "Статья"} · {a.views}
                     <Link to="/editor" search={{ id: a.id }} className="text-cyan">
                       править
@@ -573,6 +573,7 @@ function AdminPage() {
                       <Trash2 className="size-3.5" /> удалить
                     </button>
                   </span>
+
                 </li>
               ))}
             </ul>
