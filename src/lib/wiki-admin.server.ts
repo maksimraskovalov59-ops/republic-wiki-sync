@@ -1,13 +1,24 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
+/** Fails loudly when the deployment has no service key: without it every admin
+ *  action, comment and moderation call would silently do nothing. */
+export function assertBackendConfigured() {
+  if (!process.env["SUPABASE_URL"] || !process.env["SUPABASE_SERVICE_ROLE_KEY"]) {
+    throw new Error(
+      "Бэкенд не настроен: отсутствует SUPABASE_URL или SUPABASE_SERVICE_ROLE_KEY в переменных окружения сервера.",
+    );
+  }
+}
+
 /** Server-only role check. Runs with elevated privileges, so callers must
  *  already have a verified user id from the auth middleware. */
 export async function userHasRole(userId: string, role: "admin" | "user") {
+  assertBackendConfigured();
   const { data, error } = await supabaseAdmin.rpc("has_role", {
     _user_id: userId,
     _role: role,
   });
-  if (error) return false;
+  if (error) throw new Error(`Не удалось проверить права: ${error.message}`);
   return Boolean(data);
 }
 

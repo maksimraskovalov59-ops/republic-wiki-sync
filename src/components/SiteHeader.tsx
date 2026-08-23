@@ -94,7 +94,7 @@ export function SiteHeader() {
               <Palette className="size-5" />
             </button>
             {themeOpen ? (
-              <div className="absolute right-0 z-50 mt-2 w-[min(20rem,calc(100vw-2rem))] rounded-xl border border-border bg-popover p-3 shadow-xl">
+              <div className="fixed top-16 right-3 left-3 z-50 max-h-[70vh] overflow-y-auto rounded-xl border border-border bg-popover p-3 shadow-xl sm:absolute sm:top-auto sm:left-auto sm:mt-2 sm:max-h-none sm:w-80 sm:overflow-visible">
                 <p className="text-xs font-bold tracking-widest text-muted-foreground uppercase">
                   Тема оформления
                 </p>

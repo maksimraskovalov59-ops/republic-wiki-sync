@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Eye, ImagePlus, Newspaper, Save, Send } from "lucide-react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { slugify } from "@/lib/slug";
@@ -143,8 +144,16 @@ function Editor() {
     setBusy(false);
     if (error) {
       setMsg(error.message);
+      toast.error(error.message);
       return;
     }
+    toast.success(
+      status === "draft"
+        ? "Черновик сохранён"
+        : status === "published"
+          ? "Материал опубликован"
+          : "Материал отправлен на модерацию",
+    );
     if (status === "published" && slug) {
       void navigate({ to: "/article/$slug", params: { slug } });
       return;
@@ -215,36 +224,36 @@ function Editor() {
           </label>
 
           <div>
-            <div className="flex flex-wrap items-center gap-2 border border-border bg-secondary/50 px-2 py-2 text-xs">
-              <button type="button" onClick={() => insertMarkdown("## ")} className="rounded px-2 py-1 hover:bg-secondary">
+            <div className="flex items-center gap-1 overflow-x-auto rounded-t-md border border-border bg-secondary/50 px-2 py-2 text-xs [-ms-overflow-style:none] [scrollbar-width:none] sm:flex-wrap sm:gap-2">
+              <button type="button" onClick={() => insertMarkdown("## ")} className="shrink-0 rounded px-2.5 py-1.5 hover:bg-secondary">
                 H2
               </button>
-              <button type="button" onClick={() => insertMarkdown("### ")} className="rounded px-2 py-1 hover:bg-secondary">
+              <button type="button" onClick={() => insertMarkdown("### ")} className="shrink-0 rounded px-2.5 py-1.5 hover:bg-secondary">
                 H3
               </button>
-              <button type="button" onClick={() => insertMarkdown("**", "**")} className="rounded px-2 py-1 hover:bg-secondary">
+              <button type="button" onClick={() => insertMarkdown("**", "**")} className="shrink-0 rounded px-2.5 py-1.5 hover:bg-secondary">
                 Жирный
               </button>
-              <button type="button" onClick={() => insertMarkdown("*", "*")} className="rounded px-2 py-1 hover:bg-secondary">
+              <button type="button" onClick={() => insertMarkdown("*", "*")} className="shrink-0 rounded px-2.5 py-1.5 hover:bg-secondary">
                 Курсив
               </button>
-              <button type="button" onClick={() => insertMarkdown("- ")} className="rounded px-2 py-1 hover:bg-secondary">
+              <button type="button" onClick={() => insertMarkdown("- ")} className="shrink-0 rounded px-2.5 py-1.5 hover:bg-secondary">
                 Список
               </button>
-              <button type="button" onClick={() => insertMarkdown("> ")} className="rounded px-2 py-1 hover:bg-secondary">
+              <button type="button" onClick={() => insertMarkdown("> ")} className="shrink-0 rounded px-2.5 py-1.5 hover:bg-secondary">
                 Цитата
               </button>
               <button
                 type="button"
                 onClick={() => setImageOpen((v) => !v)}
-                className="flex items-center gap-1 rounded px-2 py-1 hover:bg-secondary"
+                className="flex shrink-0 items-center gap-1 rounded px-2.5 py-1.5 hover:bg-secondary"
               >
                 <ImagePlus className="size-3.5" /> Картинка
               </button>
               <button
                 type="button"
                 onClick={() => setPreview((v) => !v)}
-                className="ml-auto flex items-center gap-1 rounded px-2 py-1 hover:bg-secondary"
+                className="ml-auto flex shrink-0 items-center gap-1 rounded px-2.5 py-1.5 hover:bg-secondary"
               >
                 <Eye className="size-3.5" /> {preview ? "Редактор" : "Превью"}
               </button>
@@ -271,7 +280,7 @@ function Editor() {
             ) : null}
 
             {preview ? (
-              <div className="prose prose-sm min-h-[320px] rounded-b-md border border-t-0 border-border bg-secondary/30 p-4">
+              <div className="prose prose-sm min-h-[55vh] rounded-b-md border border-t-0 border-border bg-secondary/30 p-4">
                 <Markdown>{content}</Markdown>
               </div>
             ) : (
@@ -281,7 +290,7 @@ function Editor() {
                 onChange={(e) => setContent(e.target.value)}
                 rows={18}
                 placeholder="## Заголовок\n\nТекст статьи. Поддерживаются **жирный**, *курсив*, списки, ссылки и изображения."
-                className="w-full rounded-b-md border border-t-0 border-border bg-secondary px-3 py-2 font-mono text-sm leading-6 outline-none focus:border-cyan"
+                className="min-h-[55vh] w-full rounded-b-md border border-t-0 border-border bg-secondary px-3 py-2 font-mono text-base leading-6 outline-none focus:border-cyan sm:min-h-[420px] sm:text-sm"
               />
             )}
           </div>
@@ -292,7 +301,7 @@ function Editor() {
 
           {msg && <p className="text-sm text-magenta">{msg}</p>}
 
-          <div className="flex flex-wrap gap-2 border-t border-border pt-4">
+          <div className="sticky bottom-0 -mx-5 flex flex-wrap gap-2 border-t border-border bg-card/95 px-5 py-3 backdrop-blur sm:static sm:mx-0 sm:bg-transparent sm:px-0 sm:py-0 sm:pt-4 sm:backdrop-blur-none">
             <button
               disabled={busy || !title.trim()}
               onClick={() => void save("draft")}

@@ -2,7 +2,6 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { LogIn, UserPlus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import wikiMark from "@/assets/wiki-mark.png";
 
 import { SiteHeader } from "@/components/SiteHeader";
 import { PixelField } from "@/components/PixelField";
@@ -106,14 +105,7 @@ function AuthPage() {
       <PixelField />
       <SiteHeader />
       <main className="mx-auto flex max-w-md flex-col px-4 py-12 sm:px-6">
-        <img
-          src={wikiMark}
-          alt="Эмблема RepublicMC WIKI"
-          width={1024}
-          height={1024}
-          className="glow-cyan mx-auto size-20 rounded-2xl border border-border object-cover sm:size-24"
-        />
-        <h1 className="mt-5 text-center text-3xl font-extrabold">
+        <h1 className="text-center text-3xl font-extrabold">
           <span className="text-brand-gradient">{mode === "in" ? "Вход" : "Регистрация"}</span>
         </h1>
         <p className="mt-2 text-center text-sm text-muted-foreground">

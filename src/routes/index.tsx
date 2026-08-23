@@ -117,7 +117,7 @@ function Index() {
     return { articles: recent.articles.length, views };
   }, [data.popular, recent.articles]);
   return (
-    <div className="min-h-screen text-foreground">
+    <div className="min-h-screen overflow-x-hidden text-foreground">
       <PixelField />
       <SiteHeader />
 
