@@ -1,6 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Calendar, FileText, GitPullRequest, MessageSquare, ShieldCheck, TrendingUp } from "lucide-react";
+import {
+  AtSign,
+  Calendar,
+  FileText,
+  GitPullRequest,
+  MessageSquare,
+  ShieldCheck,
+  TrendingUp,
+  User,
+} from "lucide-react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { PixelField } from "@/components/PixelField";
 import { LowReputationNotice } from "@/components/LowReputationNotice";
@@ -64,12 +73,16 @@ function UserProfilePage() {
     );
   }
 
-  const stats = [
-    { label: "Статей опубликовано", value: profile.stats.published, icon: FileText },
+  const statCards = [
+    { label: "Статей", value: profile.stats.published, icon: FileText },
     { label: "Просмотров", value: profile.stats.views, icon: TrendingUp },
     { label: "Правок", value: profile.stats.revisions, icon: GitPullRequest },
     { label: "Комментариев", value: profile.stats.comments, icon: MessageSquare },
   ];
+
+  const revisions = profile.activity.filter((a) => a.kind === "revision").slice(0, 5);
+  const comments = profile.activity.filter((a) => a.kind === "comment").slice(0, 5);
+  const articles = profile.activity.filter((a) => a.kind === "article").slice(0, 5);
 
   return (
     <div className="min-h-screen text-foreground">
@@ -82,11 +95,11 @@ function UserProfilePage() {
               <img
                 src={profile.avatar_url}
                 alt={`Аватар ${profile.username}`}
-                className="size-16 rounded-xl border border-border object-cover"
+                className="size-20 rounded-xl border border-border object-cover"
                 loading="lazy"
               />
             ) : (
-              <div className="grid size-16 place-items-center rounded-xl border border-border bg-secondary text-xl font-bold text-muted-foreground">
+              <div className="grid size-20 place-items-center rounded-xl border border-border bg-secondary text-2xl font-bold text-muted-foreground">
                 {profile.username.slice(0, 2).toUpperCase()}
               </div>
             )}
@@ -103,6 +116,9 @@ function UserProfilePage() {
                 <span className="flex items-center gap-1">
                   <Calendar className="size-3.5" /> с {new Date(profile.created_at).toLocaleDateString("ru-RU")}
                 </span>
+                <span className="flex items-center gap-1">
+                  <User className="size-3.5" /> {profile.isAdmin ? "Администратор" : "Участник"}
+                </span>
               </p>
             </div>
             <ReputationVote targetId={profile.id} reputation={profile.reputation} targetName={profile.username} />
@@ -113,7 +129,7 @@ function UserProfilePage() {
           {profile.bio.trim() && (
             <div className="surface-card p-5">
               <h2 className="text-sm font-bold tracking-wide text-cyan uppercase">О себе</h2>
-              <p className="mt-2 text-sm whitespace-pre-wrap text-muted-foreground">{profile.bio}</p>
+              <p className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">{profile.bio}</p>
               {profile.link && (
                 <a
                   href={profile.link}
@@ -127,46 +143,107 @@ function UserProfilePage() {
             </div>
           )}
 
-          <div className="surface-card p-5">
-            <h2 className="text-sm font-bold tracking-wide text-cyan uppercase">Статьи участника</h2>
-            {profile.articles.length === 0 ? (
-              <p className="mt-3 text-sm text-muted-foreground">Опубликованных статей пока нет.</p>
-            ) : (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {statCards.map((s) => (
+              <div key={s.label} className="surface-card min-w-0 p-4 text-center">
+                <s.icon className="mx-auto size-4 text-cyan" />
+                <span className="mt-2 block text-2xl font-extrabold text-brand-gradient">{s.value}</span>
+                <span className="block truncate text-[10px] uppercase tracking-wide text-muted-foreground">
+                  {s.label}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {articles.length > 0 && (
+            <div className="surface-card p-5">
+              <h2 className="text-sm font-bold tracking-wide text-cyan uppercase">Статьи участника</h2>
               <ul className="mt-3 space-y-2">
-                {profile.articles.map((a) => (
-                  <li key={a.slug} className="rounded-lg border border-border bg-secondary/40 px-4 py-3">
+                {articles.map((a, i) => (
+                  <li key={`article-${i}`} className="rounded-lg border border-border bg-secondary/40 px-4 py-3">
                     <Link
                       to="/article/$slug"
-                      params={{ slug: a.slug }}
+                      params={{ slug: a.slug! }}
                       className="text-sm font-semibold text-foreground hover:text-cyan"
                     >
-                      {a.title}
+                      {a.label}
                     </Link>
-                    <p className="text-xs text-muted-foreground">
-                      {a.kind === "news" ? "Новость" : "Статья"} · {a.views} просмотров
-                    </p>
                   </li>
                 ))}
               </ul>
-            )}
-          </div>
+            </div>
+          )}
+
+          {revisions.length > 0 && (
+            <div className="surface-card p-5">
+              <h2 className="flex items-center gap-2 text-sm font-bold tracking-wide text-cyan uppercase">
+                <GitPullRequest className="size-4" /> Последние правки
+              </h2>
+              <ul className="mt-3 space-y-2">
+                {revisions.map((r, i) => (
+                  <li key={`revision-${i}`} className="flex items-start gap-2 text-sm text-muted-foreground">
+                    <GitPullRequest className="mt-0.5 size-3.5 shrink-0 text-cyan" />
+                    <span className="min-w-0">
+                      {r.slug ? (
+                        <Link to="/article/$slug" params={{ slug: r.slug }} className="hover:text-cyan">
+                          {r.label}
+                        </Link>
+                      ) : (
+                        r.label
+                      )}
+                      <span className="block text-xs">{new Date(r.at).toLocaleDateString("ru-RU")}</span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {comments.length > 0 && (
+            <div className="surface-card p-5">
+              <h2 className="flex items-center gap-2 text-sm font-bold tracking-wide text-cyan uppercase">
+                <MessageSquare className="size-4" /> Последние комментарии
+              </h2>
+              <ul className="mt-3 space-y-2">
+                {comments.map((c, i) => (
+                  <li key={`comment-${i}`} className="flex items-start gap-2 text-sm text-muted-foreground">
+                    <MessageSquare className="mt-0.5 size-3.5 shrink-0 text-cyan" />
+                    <span className="min-w-0">
+                      {c.slug ? (
+                        <Link to="/article/$slug" params={{ slug: c.slug }} className="hover:text-cyan">
+                          {c.label}
+                        </Link>
+                      ) : (
+                        c.label
+                      )}
+                      <span className="block text-xs">{new Date(c.at).toLocaleDateString("ru-RU")}</span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </section>
 
         <aside className="space-y-4">
           <section className="surface-card p-5">
-            <h2 className="text-sm font-bold tracking-wide text-magenta uppercase">Статистика</h2>
-            <ul className="mt-3 space-y-2 text-sm">
-              {stats.map((s) => (
-                <li key={s.label} className="flex items-center justify-between gap-3 text-muted-foreground">
-                  <span className="flex items-center gap-2">
-                    <s.icon className="size-3.5 text-cyan" /> {s.label}
-                  </span>
-                  <span className="font-semibold text-foreground">{s.value}</span>
+            <h2 className="text-sm font-bold tracking-wide text-magenta uppercase">Контакты</h2>
+            <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
+              <li className="flex items-center gap-2">
+                <AtSign className="size-3.5 text-cyan" /> {profile.username}
+              </li>
+              {profile.link && (
+                <li>
+                  <a href={profile.link} target="_blank" rel="noopener noreferrer nofollow" className="text-cyan underline">
+                    {profile.link}
+                  </a>
                 </li>
-              ))}
-              <li className="flex items-center justify-between gap-3 text-muted-foreground">
-                <span>Репутация</span>
-                <span className="font-semibold text-foreground">{profile.reputation}</span>
+              )}
+              <li className="flex items-center gap-2">
+                <ShieldCheck className="size-3.5 text-cyan" /> {profile.isAdmin ? "Администратор" : "Участник"}
+              </li>
+              <li className="flex items-center gap-2">
+                <Calendar className="size-3.5 text-cyan" /> с {new Date(profile.created_at).toLocaleDateString("ru-RU")}
               </li>
             </ul>
             {profile.username.toLowerCase() === CREATOR_USERNAME.toLowerCase() && (
@@ -180,7 +257,7 @@ function UserProfilePage() {
               <p className="mt-3 text-sm text-muted-foreground">Пока нет активности.</p>
             ) : (
               <ul className="mt-3 space-y-2 text-sm">
-                {profile.activity.map((a, i) => {
+                {profile.activity.slice(0, 10).map((a, i) => {
                   const Icon = ACTIVITY_ICON[a.kind];
                   const at = new Date(a.at).toLocaleDateString("ru-RU");
                   return (

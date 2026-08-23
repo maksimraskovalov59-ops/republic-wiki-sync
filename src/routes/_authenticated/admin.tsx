@@ -308,10 +308,10 @@ function AdminPage() {
                     </span>
                   </div>
                   <p className="mt-1 text-xs text-muted-foreground">{a.summary}</p>
-                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <div className="mt-3 grid grid-cols-2 flex-wrap items-center gap-2 sm:flex">
                     <button
                       onClick={() => void moderate(a.id, "published")}
-                      className="flex items-center gap-1.5 rounded-md border border-cyan/60 bg-secondary px-3 py-1.5 text-xs transition-shadow hover:glow-cyan"
+                      className="flex items-center justify-center gap-1.5 rounded-md border border-cyan/60 bg-secondary px-3 py-1.5 text-xs transition-shadow hover:glow-cyan"
                     >
                       <Check className="size-3.5 text-cyan" /> Опубликовать
                     </button>
@@ -319,22 +319,23 @@ function AdminPage() {
                       value={reason[a.id] ?? ""}
                       onChange={(e) => setReason((r) => ({ ...r, [a.id]: e.target.value }))}
                       placeholder="Причина отклонения"
-                      className="min-w-0 flex-1 rounded-md border border-border bg-secondary px-3 py-1.5 text-xs outline-none focus:border-magenta"
+                      className="col-span-2 min-w-0 flex-1 rounded-md border border-border bg-secondary px-3 py-1.5 text-xs outline-none focus:border-magenta"
                     />
                     <button
                       onClick={() => void moderate(a.id, "rejected")}
-                      className="flex items-center gap-1.5 rounded-md border border-magenta/60 bg-secondary px-3 py-1.5 text-xs transition-shadow hover:glow-magenta"
+                      className="flex items-center justify-center gap-1.5 rounded-md border border-magenta/60 bg-secondary px-3 py-1.5 text-xs transition-shadow hover:glow-magenta"
                     >
                       <X className="size-3.5 text-magenta" /> Отклонить
                     </button>
                     <Link
                       to="/editor"
                       search={{ id: a.id }}
-                      className="flex items-center gap-1.5 rounded-md border border-border bg-secondary px-3 py-1.5 text-xs"
+                      className="flex items-center justify-center gap-1.5 rounded-md border border-border bg-secondary px-3 py-1.5 text-xs"
                     >
                       <PencilLine className="size-3.5 text-blue" /> Править
                     </Link>
                   </div>
+
                 </li>
               ))}
             </ul>
@@ -479,42 +480,43 @@ function AdminPage() {
                     </button>
                   )}
                   {m.isCreator ? null : (
-                    <div className="flex w-full flex-wrap items-center gap-2 border-t border-border pt-2.5">
+                    <div className="grid w-full grid-cols-2 flex-wrap items-center gap-2 border-t border-border pt-2.5 sm:flex">
                       <input
                         value={blockReason[m.id] ?? ""}
                         onChange={(e) => setBlockReason((r) => ({ ...r, [m.id]: e.target.value }))}
                         placeholder="Причина"
-                        className="min-w-0 flex-1 rounded-md border border-border bg-secondary px-3 py-1.5 text-xs outline-none focus:border-magenta"
+                        className="col-span-2 min-w-0 flex-1 rounded-md border border-border bg-secondary px-3 py-1.5 text-xs outline-none focus:border-magenta"
                       />
                       <input
                         value={blockHours[m.id] ?? ""}
                         onChange={(e) => setBlockHours((r) => ({ ...r, [m.id]: e.target.value }))}
                         placeholder="Часов (пусто — навсегда)"
                         inputMode="numeric"
-                        className="w-[11rem] rounded-md border border-border bg-secondary px-3 py-1.5 text-xs outline-none focus:border-magenta"
+                        className="col-span-2 min-w-0 rounded-md border border-border bg-secondary px-3 py-1.5 text-xs outline-none focus:border-magenta sm:w-[11rem]"
                       />
                       <button
                         onClick={() => void block(m.id, "mute")}
-                        className="flex items-center gap-1.5 rounded-md border border-border bg-secondary px-3 py-1.5 text-xs"
+                        className="flex items-center justify-center gap-1.5 rounded-md border border-border bg-secondary px-3 py-1.5 text-xs"
                       >
                         <VolumeX className="size-3.5 text-blue" /> Мут
                       </button>
                       <button
                         onClick={() => void block(m.id, "ban")}
-                        className="flex items-center gap-1.5 rounded-md border border-magenta/60 bg-secondary px-3 py-1.5 text-xs"
+                        className="flex items-center justify-center gap-1.5 rounded-md border border-magenta/60 bg-secondary px-3 py-1.5 text-xs"
                       >
                         <Ban className="size-3.5 text-magenta" /> Бан
                       </button>
                       {isBlocked(m) ? (
                         <button
                           onClick={() => void block(m.id, "clear")}
-                          className="flex items-center gap-1.5 rounded-md border border-cyan/60 bg-secondary px-3 py-1.5 text-xs"
+                          className="flex items-center justify-center gap-1.5 rounded-md border border-cyan/60 bg-secondary px-3 py-1.5 text-xs"
                         >
                           <Unlock className="size-3.5 text-cyan" /> Разблокировать
                         </button>
                       ) : null}
                     </div>
                   )}
+
                 </li>
               ))}
             </ul>
@@ -546,7 +548,7 @@ function AdminPage() {
                   >
                     {a.title}
                   </Link>
-                  <span className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                  <span className="mt-2 grid grid-cols-2 flex-wrap items-center gap-2 text-xs text-muted-foreground sm:flex">
                     {a.kind === "news" ? "Новость" : "Статья"} · {a.views}
                     <Link to="/editor" search={{ id: a.id }} className="text-cyan">
                       править
@@ -573,6 +575,7 @@ function AdminPage() {
                       <Trash2 className="size-3.5" /> удалить
                     </button>
                   </span>
+
                 </li>
               ))}
             </ul>

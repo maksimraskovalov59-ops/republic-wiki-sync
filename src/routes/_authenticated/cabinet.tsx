@@ -12,10 +12,12 @@ import {
   ShieldCheck,
   Sparkles,
   UserCog,
+  AtSign,
 } from "lucide-react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { claimAdmin, getPublicProfile } from "@/lib/wiki.functions";
+import { claimAdmin, getPublicProfile, updateUsername } from "@/lib/wiki.functions";
 import { SiteHeader } from "@/components/SiteHeader";
 import { PixelField } from "@/components/PixelField";
 import { LowReputationNotice } from "@/components/LowReputationNotice";
@@ -23,6 +25,7 @@ import { ModerationBanner } from "@/components/ModerationBanner";
 import { NotificationsPanel } from "@/components/NotificationsPanel";
 import { useTheme } from "@/hooks/useTheme";
 import { ThemePicker } from "@/components/ThemePicker";
+
 
 export const Route = createFileRoute("/_authenticated/cabinet")({
   head: () => {
@@ -55,12 +58,17 @@ function Cabinet() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const doClaim = useServerFn(claimAdmin);
+  const doUpdateUsername = useServerFn(updateUsername);
   const [password, setPassword] = useState("");
   const [claimMsg, setClaimMsg] = useState<string | null>(null);
   const { theme, setTheme } = useTheme(!!user);
   const [profileForm, setProfileForm] = useState<{ bio: string; link: string; avatar_url: string } | null>(null);
   const [profileMsg, setProfileMsg] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [newUsername, setNewUsername] = useState("");
+  const [usernameMsg, setUsernameMsg] = useState<string | null>(null);
+  const [usernameBusy, setUsernameBusy] = useState(false);
+
 
   const profile = useQuery({
     queryKey: ["my-profile", user?.id],
@@ -142,6 +150,34 @@ function Cabinet() {
       setClaimMsg(res.error);
     }
   }
+
+  async function submitUsername(e: React.FormEvent) {
+    e.preventDefault();
+    if (!user || !newUsername.trim()) return;
+    setUsernameMsg(null);
+    setUsernameBusy(true);
+    try {
+      const res = await doUpdateUsername({ data: { username: newUsername.trim() } });
+      if (!res.ok) {
+        setUsernameMsg(res.error);
+        toast.error(res.error);
+        return;
+      }
+      toast.success("Имя пользователя изменено");
+      setNewUsername("");
+      refresh();
+      await queryClient.invalidateQueries();
+      void navigate({ to: "/user/$username", params: { username: res.username } });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Не удалось сменить имя";
+      setUsernameMsg(message);
+      toast.error(message);
+    } finally {
+      setUsernameBusy(false);
+    }
+  }
+
+
 
   return (
     <div className="min-h-screen text-foreground">
@@ -281,7 +317,61 @@ function Cabinet() {
               {profileMsg && <span className="text-xs text-muted-foreground">{profileMsg}</span>}
             </div>
           </form>
+
+          <form onSubmit={submitUsername} className="surface-card p-5">
+            <h2 className="flex items-center gap-2 text-sm font-bold tracking-wide text-cyan uppercase">
+              <AtSign className="size-4" /> Смена имени
+            </h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Только латинские буквы, цифры, подчёркивание и дефис (3–24 символа). После смены старые ссылки на
+              профиль перестанут работать.
+            </p>
+            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+              <input
+                value={newUsername}
+                onChange={(e) => setNewUsername(e.target.value)}
+                placeholder="Новое имя"
+                maxLength={24}
+                className="min-w-0 flex-1 rounded-md border border-border bg-secondary px-3 py-2 text-sm outline-none focus:border-cyan"
+              />
+              <button
+                type="submit"
+                disabled={usernameBusy || !newUsername.trim()}
+                className="flex items-center justify-center gap-2 rounded-md border border-cyan/60 bg-secondary px-4 py-2 text-sm transition-shadow hover:glow-cyan disabled:opacity-50"
+              >
+                <UserCog className="size-4 text-cyan" /> {usernameBusy ? "Проверяем…" : "Сменить имя"}
+              </button>
+            </div>
+            {usernameMsg && <p className="mt-3 text-sm text-magenta">{usernameMsg}</p>}
+          </form>
+
+          <div className="surface-card p-5">
+            <h2 className="text-sm font-bold tracking-wide text-cyan uppercase">Моя активность за 30 дней</h2>
+            {stats.data?.activity.length === 0 ? (
+              <p className="mt-3 text-sm text-muted-foreground">Пока нет публичной активности.</p>
+            ) : (
+              <ul className="mt-3 space-y-2 text-sm">
+                {(stats.data?.activity ?? []).slice(0, 10).map((a, i) => (
+                  <li key={`${a.kind}-${i}`} className="flex items-start gap-2 text-muted-foreground">
+                    <span className="mt-0.5 size-1.5 shrink-0 rounded-full bg-cyan" />
+                    <span className="min-w-0">
+                      {a.slug ? (
+                        <Link to="/article/$slug" params={{ slug: a.slug }} className="hover:text-cyan">
+                          {a.label}
+                        </Link>
+                      ) : (
+                        a.label
+                      )}
+                      <span className="block text-xs">{new Date(a.at).toLocaleDateString("ru-RU")}</span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </section>
+
+
 
         <aside className="space-y-4">
           <section className="surface-card p-5">

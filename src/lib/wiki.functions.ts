@@ -455,6 +455,48 @@ export const setUserAdmin = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
+export const updateUsername = createServerFn({ method: "POST" })
+
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { username: string }) => data)
+  .handler(async ({ data, context }) => {
+    const username = data.username.trim().slice(0, 24);
+    const valid = /^[a-zA-Z0-9_-]{3,24}$/.test(username);
+    if (!valid) {
+      return {
+        ok: false as const,
+        error: "Имя может содержать только латинские буквы, цифры, подчёркивание и дефис (3–24 символа).",
+      };
+    }
+    if (username.toLowerCase() === CREATOR_USERNAME.toLowerCase()) {
+      return { ok: false as const, error: "Это имя зарезервировано." };
+    }
+    const { data: me } = await context.supabase
+      .from("profiles")
+      .select("username")
+      .eq("id", context.userId)
+      .maybeSingle();
+    if (!me) return { ok: false as const, error: "Профиль не найден." };
+    if (me.username.toLowerCase() === CREATOR_USERNAME.toLowerCase()) {
+      return { ok: false as const, error: "Создатель не может менять имя." };
+    }
+    const { data: existing } = await context.supabase
+      .from("profiles")
+      .select("id")
+      .ilike("username", username)
+      .maybeSingle();
+    if (existing) return { ok: false as const, error: "Это имя уже занято." };
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error: updErr } = await supabaseAdmin.from("profiles").update({ username }).eq("id", context.userId);
+    if (updErr) return { ok: false as const, error: "Не удалось обновить имя." };
+    await supabaseAdmin.from("articles").update({ author_name: username }).eq("author_id", context.userId);
+    await supabaseAdmin.from("comments").update({ author_name: username }).eq("author_id", context.userId);
+    return { ok: true as const, username };
+  });
+
+
+
 export type PublicProfile = {
   id: string;
   username: string;
