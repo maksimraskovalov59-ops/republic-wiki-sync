@@ -204,16 +204,16 @@ function Index() {
             <span className="text-foreground">политика</span> RepublicMC — в одной вики.
           </p>
 
-          <div className="mt-6 grid w-full grid-cols-2 gap-3 sm:mt-8 lg:grid-cols-4">
+          <div className="mt-6 grid w-full min-w-0 grid-cols-2 gap-3 sm:grid-cols-4 sm:mt-8 lg:grid-cols-4">
             {[
               { label: "Материалов", value: totals.articles },
               { label: "Просмотров", value: totals.views },
               { label: "Категорий", value: categories.length },
               { label: "Правок", value: recent.revisions.length },
             ].map((s) => (
-              <div key={s.label} className="surface-card p-4">
+              <div key={s.label} className="surface-card min-w-0 overflow-hidden p-4">
                 <span className="block text-2xl font-extrabold text-brand-gradient">{s.value}</span>
-                <span className="mt-1 block text-[11px] tracking-widest text-muted-foreground uppercase">
+                <span className="mt-1 block truncate text-[10px] tracking-wide text-muted-foreground uppercase sm:text-[11px] sm:tracking-widest">
                   {s.label}
                 </span>
               </div>
