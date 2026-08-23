@@ -344,7 +344,33 @@ function Cabinet() {
             </div>
             {usernameMsg && <p className="mt-3 text-sm text-magenta">{usernameMsg}</p>}
           </form>
+
+          <div className="surface-card p-5">
+            <h2 className="text-sm font-bold tracking-wide text-cyan uppercase">Моя активность за 30 дней</h2>
+            {stats.data?.activity.length === 0 ? (
+              <p className="mt-3 text-sm text-muted-foreground">Пока нет публичной активности.</p>
+            ) : (
+              <ul className="mt-3 space-y-2 text-sm">
+                {(stats.data?.activity ?? []).slice(0, 10).map((a, i) => (
+                  <li key={`${a.kind}-${i}`} className="flex items-start gap-2 text-muted-foreground">
+                    <span className="mt-0.5 size-1.5 shrink-0 rounded-full bg-cyan" />
+                    <span className="min-w-0">
+                      {a.slug ? (
+                        <Link to="/article/$slug" params={{ slug: a.slug }} className="hover:text-cyan">
+                          {a.label}
+                        </Link>
+                      ) : (
+                        a.label
+                      )}
+                      <span className="block text-xs">{new Date(a.at).toLocaleDateString("ru-RU")}</span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </section>
+
 
 
         <aside className="space-y-4">
