@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Eye, ImagePlus, Newspaper, Save, Send } from "lucide-react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { slugify } from "@/lib/slug";
@@ -143,8 +144,16 @@ function Editor() {
     setBusy(false);
     if (error) {
       setMsg(error.message);
+      toast.error(error.message);
       return;
     }
+    toast.success(
+      status === "draft"
+        ? "Черновик сохранён"
+        : status === "published"
+          ? "Материал опубликован"
+          : "Материал отправлен на модерацию",
+    );
     if (status === "published" && slug) {
       void navigate({ to: "/article/$slug", params: { slug } });
       return;
