@@ -151,6 +151,34 @@ function Cabinet() {
     }
   }
 
+  async function submitUsername(e: React.FormEvent) {
+    e.preventDefault();
+    if (!user || !newUsername.trim()) return;
+    setUsernameMsg(null);
+    setUsernameBusy(true);
+    try {
+      const res = await doUpdateUsername({ data: { username: newUsername.trim() } });
+      if (!res.ok) {
+        setUsernameMsg(res.error);
+        toast.error(res.error);
+        return;
+      }
+      toast.success("Имя пользователя изменено");
+      setNewUsername("");
+      refresh();
+      await queryClient.invalidateQueries();
+      void navigate({ to: "/user/$username", params: { username: res.username } });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Не удалось сменить имя";
+      setUsernameMsg(message);
+      toast.error(message);
+    } finally {
+      setUsernameBusy(false);
+    }
+  }
+
+
+
   return (
     <div className="min-h-screen text-foreground">
       <PixelField />
