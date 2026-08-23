@@ -12,10 +12,12 @@ import {
   ShieldCheck,
   Sparkles,
   UserCog,
+  AtSign,
 } from "lucide-react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { claimAdmin, getPublicProfile } from "@/lib/wiki.functions";
+import { claimAdmin, getPublicProfile, updateUsername } from "@/lib/wiki.functions";
 import { SiteHeader } from "@/components/SiteHeader";
 import { PixelField } from "@/components/PixelField";
 import { LowReputationNotice } from "@/components/LowReputationNotice";
@@ -23,6 +25,7 @@ import { ModerationBanner } from "@/components/ModerationBanner";
 import { NotificationsPanel } from "@/components/NotificationsPanel";
 import { useTheme } from "@/hooks/useTheme";
 import { ThemePicker } from "@/components/ThemePicker";
+
 
 export const Route = createFileRoute("/_authenticated/cabinet")({
   head: () => {
