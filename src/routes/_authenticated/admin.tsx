@@ -308,10 +308,10 @@ function AdminPage() {
                     </span>
                   </div>
                   <p className="mt-1 text-xs text-muted-foreground">{a.summary}</p>
-                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <div className="mt-3 grid grid-cols-2 flex-wrap items-center gap-2 sm:flex">
                     <button
                       onClick={() => void moderate(a.id, "published")}
-                      className="flex items-center gap-1.5 rounded-md border border-cyan/60 bg-secondary px-3 py-1.5 text-xs transition-shadow hover:glow-cyan"
+                      className="flex items-center justify-center gap-1.5 rounded-md border border-cyan/60 bg-secondary px-3 py-1.5 text-xs transition-shadow hover:glow-cyan"
                     >
                       <Check className="size-3.5 text-cyan" /> Опубликовать
                     </button>
@@ -319,22 +319,23 @@ function AdminPage() {
                       value={reason[a.id] ?? ""}
                       onChange={(e) => setReason((r) => ({ ...r, [a.id]: e.target.value }))}
                       placeholder="Причина отклонения"
-                      className="min-w-0 flex-1 rounded-md border border-border bg-secondary px-3 py-1.5 text-xs outline-none focus:border-magenta"
+                      className="col-span-2 min-w-0 flex-1 rounded-md border border-border bg-secondary px-3 py-1.5 text-xs outline-none focus:border-magenta"
                     />
                     <button
                       onClick={() => void moderate(a.id, "rejected")}
-                      className="flex items-center gap-1.5 rounded-md border border-magenta/60 bg-secondary px-3 py-1.5 text-xs transition-shadow hover:glow-magenta"
+                      className="flex items-center justify-center gap-1.5 rounded-md border border-magenta/60 bg-secondary px-3 py-1.5 text-xs transition-shadow hover:glow-magenta"
                     >
                       <X className="size-3.5 text-magenta" /> Отклонить
                     </button>
                     <Link
                       to="/editor"
                       search={{ id: a.id }}
-                      className="flex items-center gap-1.5 rounded-md border border-border bg-secondary px-3 py-1.5 text-xs"
+                      className="flex items-center justify-center gap-1.5 rounded-md border border-border bg-secondary px-3 py-1.5 text-xs"
                     >
                       <PencilLine className="size-3.5 text-blue" /> Править
                     </Link>
                   </div>
+
                 </li>
               ))}
             </ul>
