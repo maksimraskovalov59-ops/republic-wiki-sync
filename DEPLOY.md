@@ -235,3 +235,102 @@ https://<PROJECT-REF>.supabase.co/auth/v1/callback
 | `redirect_uri is not associated with this application` | callback в GitHub/Discord не совпадает с 8.1 |
 | После входа кидает на `localhost` | не обновлён Site URL в Supabase |
 | Ник пустой после OAuth-входа | задай никнейм в кабинете — он берётся из профиля провайдера, если тот его отдал |
+
+---
+
+## 9. Переменные окружения — полный список
+
+Задавать в Vercel → Settings → Environment Variables **для Production и Preview**.
+
+| Переменная | Где взять | Секрет | Что сломается без неё |
+| --- | --- | --- | --- |
+| `VITE_SUPABASE_URL` | Supabase → Project Settings → API → Project URL | нет | клиент не подключится к базе |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | там же, `anon`/publishable key | нет | вход, статьи, комментарии |
+| `VITE_SUPABASE_PROJECT_ID` | project ref из URL дашборда | нет | вспомогательные ссылки |
+| `SUPABASE_URL` | тот же Project URL | нет | SSR («This page didn't load») |
+| `SUPABASE_PUBLISHABLE_KEY` | тот же anon key | нет | SSR-чтение статей |
+| `SUPABASE_PROJECT_ID` | project ref | нет | — |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase → Project Settings → API → `service_role` | **да** | админка (пустой список участников, «кнопки не работают»), комментарии, модерация, уведомления, аудит |
+| `ADMIN_UNLOCK_PASSWORD` | придумайте сами | **да** | разблокировка админ-раздела в кабинете |
+
+Важно: `SUPABASE_SERVICE_ROLE_KEY` — обязателен. Без него серверные функции
+падают с ошибкой «Бэкенд не настроен: отсутствует SUPABASE_URL или
+SUPABASE_SERVICE_ROLE_KEY», и это ровно тот случай, когда «кнопки ничего не
+делают»: список участников пуст, статьи не уходят на модерацию, комментарии не
+отправляются.
+
+После добавления переменных обязательно **Redeploy** с выключенным
+«Use existing Build Cache» — Vite вшивает `VITE_*` в бандл на этапе сборки.
+
+## 10. Пошаговая проверка бэкенда
+
+1. Применить миграции:
+
+   ```bash
+   supabase login
+   supabase link --project-ref <ваш-project-ref>
+   supabase db push
+   ```
+
+2. Проверить, что таблицы и права на месте:
+
+   ```sql
+   -- список таблиц
+   select table_name from information_schema.tables where table_schema = 'public';
+
+   -- RLS включён?
+   select relname, relrowsecurity from pg_class
+   where relnamespace = 'public'::regnamespace and relkind = 'r';
+
+   -- GRANT-ы для Data API
+   select table_name, grantee, privilege_type from information_schema.role_table_grants
+   where table_schema = 'public' and grantee in ('anon','authenticated','service_role')
+   order by table_name;
+   ```
+
+   Если у какой-то таблицы нет строк для `authenticated` — повторите `supabase db push`.
+
+3. Проверить роль администратора:
+
+   ```sql
+   select p.username, r.role from public.profiles p
+   left join public.user_roles r on r.user_id = p.id
+   where lower(p.username) = 'thehapppyone';
+   ```
+
+4. Authentication → URL Configuration:
+   - Site URL: `https://<ваш-домен>`
+   - Redirect URLs: `https://<ваш-домен>/**`, при локальной разработке `http://localhost:5173/**`.
+
+5. Authentication → Providers → GitHub и Discord: включить и вставить Client ID/Secret.
+   Callback URL для обоих: `https://<PROJECT-REF>.supabase.co/auth/v1/callback`.
+
+## 11. Диагностика
+
+Логи серверных функций: Vercel → Deployments → выбрать деплой → **Functions** →
+Runtime Logs. Ошибка конфигурации выглядит как
+`Missing Supabase environment variable(s): ...`.
+
+| Симптом | Причина | Что сделать |
+| --- | --- | --- |
+| В админке пустой список участников | нет `SUPABASE_SERVICE_ROLE_KEY` | добавить переменную, Redeploy без кеша |
+| Кнопки в админке «ничего не делают» | то же — теперь показывается всплывающая ошибка | смотреть текст тоста и Runtime Logs |
+| Статья не уходит на модерацию | RLS/GRANT не применены или пользователь в муте | `supabase db push`; проверить `muted_until` в `profiles` |
+| Комментарии не отправляются | нет сервисного ключа либо мут аккаунта | см. две строки выше |
+| `Unsupported provider` | провайдер выключен в Supabase того проекта, чей URL в `VITE_SUPABASE_URL` | включить провайдер, проверить переменные |
+| Запросы уходят на чужой `*.supabase.co` | закоммичен `.env` | `git rm --cached .env`, Redeploy без кеша |
+| «This page didn't load» | нет серверных `SUPABASE_URL` / `SUPABASE_PUBLISHABLE_KEY` | добавить и Redeploy |
+| 404 при обновлении страницы | сборка упала или неверный preset | `NITRO_PRESET=vercel`, проверить лог сборки |
+
+## 12. Чек-лист приёмки
+
+- [ ] Главная и статьи открываются без входа (SSR).
+- [ ] Регистрация, вход по паролю, вход через GitHub и Discord.
+- [ ] Отправка статьи на модерацию → появляется в кабинете и в админке.
+- [ ] Публикация/отклонение материала админом, уведомление автору.
+- [ ] Список участников в админке не пуст, выдача/снятие админки работает.
+- [ ] Мут/бан и снятие ограничений, аудит-лог пишется.
+- [ ] Комментарии отправляются и удаляются.
+- [ ] Обнуление просмотров и удаление материала.
+- [ ] Смена темы, колокольчик уведомлений.
+- [ ] Мобильный вид: главная, выбор темы, админка, редактор без обрезаний.
