@@ -86,17 +86,33 @@ function ArticlePage() {
 
   async function handleComment() {
     if (!user || !article) return;
-    const res = await doAddComment({ data: { articleId: article.id, body: commentBody } });
-    if (!res.ok) return alert(res.error);
-    setCommentBody("");
-    await queryClient.invalidateQueries({ queryKey: ["comments", article.id] });
+    try {
+      const res = await doAddComment({ data: { articleId: article.id, body: commentBody } });
+      if (!res.ok) {
+        toast.error(res.error);
+        return;
+      }
+      setCommentBody("");
+      toast.success("Комментарий добавлен");
+      await queryClient.invalidateQueries({ queryKey: ["comments", article.id] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Не удалось отправить комментарий");
+    }
   }
 
   async function handleDeleteComment(id: string) {
     if (!article) return;
-    const res = await doDeleteComment({ data: { id } });
-    if (!res.ok) return alert(res.error);
-    await queryClient.invalidateQueries({ queryKey: ["comments", article.id] });
+    try {
+      const res = await doDeleteComment({ data: { id } });
+      if (!res.ok) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success("Комментарий удалён");
+      await queryClient.invalidateQueries({ queryKey: ["comments", article.id] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Не удалось удалить комментарий");
+    }
   }
 
   async function openSuggestion() {
