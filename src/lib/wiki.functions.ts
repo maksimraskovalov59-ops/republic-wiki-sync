@@ -452,7 +452,11 @@ export const setUserAdmin = createServerFn({ method: "POST" })
         .eq("role", "admin");
       if (error) return { ok: false as const, error: "Не удалось снять права" };
     }
+    return { ok: true as const };
+  });
+
 export const updateUsername = createServerFn({ method: "POST" })
+
   .middleware([requireSupabaseAuth])
   .inputValidator((data: { username: string }) => data)
   .handler(async ({ data, context }) => {
