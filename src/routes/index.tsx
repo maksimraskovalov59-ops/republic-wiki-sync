@@ -162,38 +162,40 @@ function Index() {
             Encyclopedia &amp; Wiki
           </p>
 
-          <label className="glow-cyan mt-5 flex w-full items-center gap-3 rounded-xl border border-cyan/60 bg-card px-4 py-3 backdrop-blur sm:mt-8">
-            <Search className="size-5 shrink-0 text-cyan" />
-            <input
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Поиск по статьям, городам и законам…"
-              className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-            />
-            <kbd className="shrink-0 rounded border border-border px-2 py-0.5 text-[10px] text-muted-foreground">
-              ESC
-            </kbd>
-          </label>
+          <div className="relative mt-5 w-full sm:mt-8">
+            <label className="glow-cyan flex w-full items-center gap-3 rounded-xl border border-cyan/60 bg-card px-4 py-3 backdrop-blur">
+              <Search className="size-5 shrink-0 text-cyan" />
+              <input
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Поиск по статьям, городам и законам…"
+                className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+              />
+              <kbd className="shrink-0 rounded border border-border px-2 py-0.5 text-[10px] text-muted-foreground">
+                ESC
+              </kbd>
+            </label>
 
-          {query.trim() ? (
-            <div className="surface-card mt-3 w-full divide-y divide-border text-left">
-              {results.length === 0 ? (
-                <p className="p-3 text-sm text-muted-foreground">Ничего не найдено</p>
-              ) : (
-                results.map((r) => (
-                  <Link
-                    key={r.slug}
-                    to="/article/$slug"
-                    params={{ slug: r.slug }}
-                    className="block px-3 py-2 text-sm text-muted-foreground hover:text-foreground"
-                  >
-                    {r.title}
-                  </Link>
-                ))
-              )}
-            </div>
-          ) : null}
+            {query.trim() ? (
+              <div className="surface-card absolute bottom-full left-0 right-0 z-50 mb-2 w-full max-w-full divide-y divide-border overflow-hidden text-left shadow-xl">
+                {results.length === 0 ? (
+                  <p className="p-3 text-sm text-muted-foreground">Ничего не найдено</p>
+                ) : (
+                  results.map((r) => (
+                    <Link
+                      key={r.slug}
+                      to="/article/$slug"
+                      params={{ slug: r.slug }}
+                      className="block px-3 py-2 text-sm text-muted-foreground hover:text-foreground"
+                    >
+                      {r.title}
+                    </Link>
+                  ))
+                )}
+              </div>
+            ) : null}
+          </div>
 
           <p className="mt-5 max-w-xl text-sm leading-relaxed text-muted-foreground">
             <span className="text-foreground">Города</span>,{" "}
