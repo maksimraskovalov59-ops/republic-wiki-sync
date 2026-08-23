@@ -20,6 +20,7 @@ import {
   VolumeX,
   X,
 } from "lucide-react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -92,13 +93,22 @@ function AdminPage() {
 
   async function toggleAdmin(userId: string, makeAdmin: boolean) {
     setMemberMsg(null);
-    const res = await doSetAdmin({ data: { userId, makeAdmin } });
-    if (!res.ok) {
-      setMemberMsg(res.error);
-      return;
+    try {
+      const res = await doSetAdmin({ data: { userId, makeAdmin } });
+      if (!res.ok) {
+        setMemberMsg(res.error);
+        toast.error(res.error);
+        return;
+      }
+      const ok = makeAdmin ? "Права администратора выданы" : "Права администратора сняты";
+      setMemberMsg(ok);
+      toast.success(ok);
+      await queryClient.invalidateQueries({ queryKey: ["admin-members"] });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Не удалось изменить права";
+      setMemberMsg(msg);
+      toast.error(msg);
     }
-    setMemberMsg(makeAdmin ? "Права администратора выданы" : "Права администратора сняты");
-    await queryClient.invalidateQueries({ queryKey: ["admin-members"] });
   }
 
   const audit = useQuery<AuditRow[]>({
@@ -110,42 +120,66 @@ function AdminPage() {
   async function block(userId: string, mode: "mute" | "ban" | "clear") {
     setMemberMsg(null);
     const raw = Number.parseInt(blockHours[userId] ?? "", 10);
-    const res = await doBlock({
-      data: {
-        userId,
-        mode,
-        hours: Number.isFinite(raw) && raw > 0 ? raw : null,
-        reason: blockReason[userId] ?? "",
-      },
-    });
-    if (!res.ok) {
-      setMemberMsg(res.error);
-      return;
+    try {
+      const res = await doBlock({
+        data: {
+          userId,
+          mode,
+          hours: Number.isFinite(raw) && raw > 0 ? raw : null,
+          reason: blockReason[userId] ?? "",
+        },
+      });
+      if (!res.ok) {
+        setMemberMsg(res.error);
+        toast.error(res.error);
+        return;
+      }
+      const ok =
+        mode === "clear" ? "Ограничения сняты" : mode === "mute" ? "Участник в муте" : "Участник забанен";
+      setMemberMsg(ok);
+      toast.success(ok);
+      await queryClient.invalidateQueries();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Не удалось применить ограничение";
+      setMemberMsg(msg);
+      toast.error(msg);
     }
-    setMemberMsg(
-      mode === "clear" ? "Ограничения сняты" : mode === "mute" ? "Участник в муте" : "Участник забанен",
-    );
-    await queryClient.invalidateQueries();
   }
 
   async function articleAction(articleId: string, action: "reset-views" | "unpublish" | "delete") {
     if (action === "delete" && !confirm("Удалить материал безвозвратно?")) return;
-    const res = await doArticleAction({ data: { articleId, action } });
-    if (!res.ok) {
-      alert(res.error);
-      return;
+    try {
+      const res = await doArticleAction({ data: { articleId, action } });
+      if (!res.ok) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success(
+        action === "delete"
+          ? "Материал удалён"
+          : action === "unpublish"
+            ? "Материал снят с публикации"
+            : "Просмотры обнулены",
+      );
+      await queryClient.invalidateQueries();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Действие не выполнено");
     }
-    await queryClient.invalidateQueries();
   }
 
   async function resetEverything() {
     if (!confirm("Обнулить просмотры у всех материалов?")) return;
-    const res = await doResetAll();
-    if (!res.ok) {
-      alert(res.error);
-      return;
+    try {
+      const res = await doResetAll();
+      if (!res.ok) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success("Просмотры обнулены у всех материалов");
+      await queryClient.invalidateQueries();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Действие не выполнено");
     }
-    await queryClient.invalidateQueries();
   }
 
   const pending = useQuery({
@@ -182,29 +216,44 @@ function AdminPage() {
   });
 
   async function moderate(id: string, status: "published" | "rejected") {
-    await supabase
+    const { error } = await supabase
       .from("articles")
       .update({ status, reject_reason: status === "rejected" ? (reason[id] ?? "Не соответствует правилам") : null })
       .eq("id", id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success(status === "published" ? "Материал опубликован" : "Материал отклонён");
     await queryClient.invalidateQueries();
   }
 
   async function approveSuggestion(id: string) {
-    const res = await doApprove({ data: { suggestionId: id } });
-    if (!res.ok) {
-      alert(res.error);
-      return;
+    try {
+      const res = await doApprove({ data: { suggestionId: id } });
+      if (!res.ok) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success("Правка принята");
+      await queryClient.invalidateQueries();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Не удалось принять правку");
     }
-    await queryClient.invalidateQueries();
   }
 
   async function rejectSuggestion(id: string) {
-    const res = await doReject({ data: { suggestionId: id, reason: suggestionReason[id] ?? "" } });
-    if (!res.ok) {
-      alert(res.error);
-      return;
+    try {
+      const res = await doReject({ data: { suggestionId: id, reason: suggestionReason[id] ?? "" } });
+      if (!res.ok) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success("Правка отклонена");
+      await queryClient.invalidateQueries();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Не удалось отклонить правку");
     }
-    await queryClient.invalidateQueries();
   }
 
   if (loading) {
