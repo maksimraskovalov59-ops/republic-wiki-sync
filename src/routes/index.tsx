@@ -178,7 +178,7 @@ function Index() {
             </label>
 
             {query.trim() ? (
-              <div className="surface-card absolute bottom-full left-0 right-0 z-50 mb-2 w-full max-w-full divide-y divide-border overflow-hidden text-left shadow-xl">
+              <div className="surface-card absolute top-full left-0 right-0 z-50 mt-2 w-full max-w-full divide-y divide-border overflow-hidden text-left shadow-xl">
                 {results.length === 0 ? (
                   <p className="p-3 text-sm text-muted-foreground">Ничего не найдено</p>
                 ) : (
