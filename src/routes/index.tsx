@@ -121,8 +121,8 @@ function Index() {
       <PixelField />
       <SiteHeader />
 
-      <main className="mx-auto grid max-w-7xl 2xl:max-w-[1600px] min-[1900px]:max-w-[1800px] gap-6 px-4 py-6 sm:px-6 sm:py-8 lg:grid-cols-[280px_minmax(0,1fr)_300px] 2xl:grid-cols-[340px_minmax(0,1fr)_360px]">
-        <aside className="order-3 space-y-3 lg:order-1">
+      <main className="mx-auto grid max-w-7xl grid-cols-[minmax(0,1fr)] gap-6 px-4 py-6 sm:px-6 sm:py-8 lg:grid-cols-[280px_minmax(0,1fr)_300px] 2xl:max-w-[1600px] 2xl:grid-cols-[340px_minmax(0,1fr)_360px] min-[1900px]:max-w-[1800px]">
+        <aside className="order-3 min-w-0 space-y-3 lg:order-1">
           <h2 className="flex items-center gap-2 text-lg font-bold text-cyan">
             <Newspaper className="size-5 shrink-0" /> Новости
           </h2>
@@ -239,7 +239,7 @@ function Index() {
           ) : null}
         </section>
 
-        <aside className="order-2 space-y-3 lg:order-3">
+        <aside className="order-2 min-w-0 space-y-3 lg:order-3">
           <h2 className="flex items-center gap-2 text-lg font-bold text-magenta">
             <Star className="size-5 shrink-0" /> Популярные статьи
           </h2>
@@ -280,7 +280,7 @@ function Index() {
           ) : null}
         </aside>
 
-        <section className="order-4 grid items-start gap-6 lg:col-span-3 xl:grid-cols-[minmax(0,1fr)_360px] 2xl:grid-cols-[minmax(0,1fr)_420px]">
+        <section className="order-4 grid min-w-0 grid-cols-[minmax(0,1fr)] items-start gap-6 lg:col-span-3 xl:grid-cols-[minmax(0,1fr)_360px] 2xl:grid-cols-[minmax(0,1fr)_420px]">
           <div className="surface-card p-5 sm:p-6">
             <h2 className="text-lg font-bold text-cyan">Разделы вики</h2>
             <p className="mt-1 text-sm text-muted-foreground">
