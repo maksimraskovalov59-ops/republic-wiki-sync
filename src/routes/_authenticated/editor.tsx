@@ -17,6 +17,7 @@ import {
   Send,
   SquarePen,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -49,7 +50,15 @@ export const Route = createFileRoute("/_authenticated/editor")({
   component: Editor,
 });
 
-const TOOLBAR = [
+type ToolbarItem = {
+  key: string;
+  icon: LucideIcon;
+  label: string;
+  before: string;
+  after?: string;
+};
+
+const TOOLBAR: ToolbarItem[] = [
   { key: "h2", icon: Heading2, label: "H2", before: "## " },
   { key: "h3", icon: Heading3, label: "H3", before: "### " },
   { key: "bold", icon: Bold, label: "Жирный", before: "**", after: "**" },
@@ -57,7 +66,7 @@ const TOOLBAR = [
   { key: "list", icon: List, label: "Список", before: "- " },
   { key: "quote", icon: Quote, label: "Цитата", before: "> " },
   { key: "link", icon: LinkIcon, label: "Ссылка", before: "[", after: "](url)" },
-] as const;
+];
 
 type EditorMode = "edit" | "preview" | "split";
 
