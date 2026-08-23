@@ -317,7 +317,35 @@ function Cabinet() {
               {profileMsg && <span className="text-xs text-muted-foreground">{profileMsg}</span>}
             </div>
           </form>
+
+          <form onSubmit={submitUsername} className="surface-card p-5">
+            <h2 className="flex items-center gap-2 text-sm font-bold tracking-wide text-cyan uppercase">
+              <AtSign className="size-4" /> Смена имени
+            </h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Только латинские буквы, цифры, подчёркивание и дефис (3–24 символа). После смены старые ссылки на
+              профиль перестанут работать.
+            </p>
+            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+              <input
+                value={newUsername}
+                onChange={(e) => setNewUsername(e.target.value)}
+                placeholder="Новое имя"
+                maxLength={24}
+                className="min-w-0 flex-1 rounded-md border border-border bg-secondary px-3 py-2 text-sm outline-none focus:border-cyan"
+              />
+              <button
+                type="submit"
+                disabled={usernameBusy || !newUsername.trim()}
+                className="flex items-center justify-center gap-2 rounded-md border border-cyan/60 bg-secondary px-4 py-2 text-sm transition-shadow hover:glow-cyan disabled:opacity-50"
+              >
+                <UserCog className="size-4 text-cyan" /> {usernameBusy ? "Проверяем…" : "Сменить имя"}
+              </button>
+            </div>
+            {usernameMsg && <p className="mt-3 text-sm text-magenta">{usernameMsg}</p>}
+          </form>
         </section>
+
 
         <aside className="space-y-4">
           <section className="surface-card p-5">
