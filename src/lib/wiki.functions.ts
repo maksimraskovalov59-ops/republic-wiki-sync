@@ -471,28 +471,31 @@ export const updateUsername = createServerFn({ method: "POST" })
     if (username.toLowerCase() === CREATOR_USERNAME.toLowerCase()) {
       return { ok: false as const, error: "Это имя зарезервировано." };
     }
-    const { data: me } = await context.supabase
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: me, error: meErr } = await supabaseAdmin
       .from("profiles")
       .select("username")
       .eq("id", context.userId)
       .maybeSingle();
+    if (meErr) return { ok: false as const, error: "Не удалось прочитать профиль." };
     if (!me) return { ok: false as const, error: "Профиль не найден." };
     if (me.username.toLowerCase() === CREATOR_USERNAME.toLowerCase()) {
       return { ok: false as const, error: "Создатель не может менять имя." };
     }
-    const { data: existing } = await context.supabase
+    const { data: existing } = await supabaseAdmin
       .from("profiles")
       .select("id")
       .ilike("username", username)
+      .neq("id", context.userId)
       .maybeSingle();
     if (existing) return { ok: false as const, error: "Это имя уже занято." };
 
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error: updErr } = await supabaseAdmin.from("profiles").update({ username }).eq("id", context.userId);
     if (updErr) return { ok: false as const, error: "Не удалось обновить имя." };
     await supabaseAdmin.from("articles").update({ author_name: username }).eq("author_id", context.userId);
     await supabaseAdmin.from("comments").update({ author_name: username }).eq("author_id", context.userId);
     return { ok: true as const, username };
+
   });
 
 
