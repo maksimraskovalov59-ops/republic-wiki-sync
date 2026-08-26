@@ -82,7 +82,7 @@ export function NotificationsBell({ enabled }: { enabled: boolean }) {
       </button>
 
       {open ? (
-        <div className="absolute right-0 z-50 mt-2 w-[min(22rem,calc(100vw-2rem))] rounded-xl border border-border bg-popover p-3 shadow-xl">
+        <div className="fixed left-2 right-2 top-16 z-50 sm:absolute sm:inset-x-auto sm:right-0 sm:top-auto sm:mt-2 sm:w-[min(22rem,calc(100vw-2rem))] rounded-xl border border-border bg-popover p-3 shadow-xl">
           <div className="flex items-center justify-between gap-2">
             <p className="text-xs font-bold tracking-widest text-muted-foreground uppercase">Уведомления</p>
             <div className="flex items-center gap-2">
