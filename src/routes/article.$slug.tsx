@@ -230,7 +230,13 @@ function ArticlePage() {
                 <span className="flex items-center gap-1">
                   <TrendingUp className="size-3.5" /> {articleData.views} просмотров
                 </span>
+                {revisions[0]?.editor_name ? (
+                  <span className="flex items-center gap-1">
+                    <SquarePen className="size-3.5" /> Последняя правка: {revisions[0].editor_name}
+                  </span>
+                ) : null}
               </div>
+
 
               {author && (
                 <div className="mt-4">

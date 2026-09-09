@@ -184,8 +184,6 @@ function Editor() {
         .split(",")
         .map((c) => c.trim())
         .filter(Boolean),
-      author_id: user.id,
-      author_name: username ?? "Игрок",
       kind: isNews ? ("news" as const) : ("article" as const),
       status,
     };
@@ -193,6 +191,7 @@ function Editor() {
     let error;
     let slug = existing.data?.slug;
     if (id) {
+      // Автор материала не меняется при правках — поля автора не отправляем.
       ({ error } = await supabase.from("articles").update(payload).eq("id", id));
       if (!error) {
         await supabase.from("article_revisions").insert({
@@ -206,9 +205,10 @@ function Editor() {
       slug = slugify(title);
       const res = await supabase
         .from("articles")
-        .insert({ ...payload, slug })
+        .insert({ ...payload, slug, author_id: user.id, author_name: username ?? "Игрок" })
         .select("id")
         .maybeSingle();
+
       error = res.error;
       if (!error && res.data) {
         await supabase.from("article_revisions").insert({
