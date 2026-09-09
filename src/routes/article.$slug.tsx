@@ -2,7 +2,7 @@ import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Calendar, Edit3, MessageSquare, Tag, ThumbsUp, TrendingUp, User } from "lucide-react";
+import { Calendar, Edit3, MessageSquare, SquarePen, Tag, ThumbsUp, TrendingUp, User } from "lucide-react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { PixelField } from "@/components/PixelField";
 import { Markdown } from "@/components/Markdown";
